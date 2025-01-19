@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "author": "laustindasauce",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "build": "remix vite:build",
     "dev": "remix vite:dev --host",
