@@ -1,4 +1,4 @@
-// @APIVersion 0.0.0
+// @APIVersion 0.1.0
 // @Title Seeklit Server
 // @Description Rest API for book request application
 // @Contact l@ustindasauce.com
