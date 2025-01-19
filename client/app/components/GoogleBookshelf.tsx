@@ -9,11 +9,13 @@ import RequestPrompt from "./RequestPrompt";
 interface BookShelfProps {
   searchResults?: GoogleBook[];
   onRequestBook?: (req: NewBookRequest) => Promise<void>;
+  users: User[];
 }
 
 export default function GoogleBookShelf({
   searchResults = [],
   onRequestBook,
+  users,
 }: BookShelfProps) {
   const [selectedBook, setSelectedBook] = useState<NewBookRequest | null>(null);
   const [bookDescription, setBookDescription] = useState<string | null>(null);
@@ -125,6 +127,7 @@ export default function GoogleBookShelf({
         bookDescription={bookDescription}
         handleCloseModal={handleCloseModal}
         onRequestBook={onRequestBook}
+        users={users}
       />
     </main>
   );
