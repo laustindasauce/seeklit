@@ -14,7 +14,7 @@ import Sidebar from "@/components/Sidebar";
 import { useOptionalUser } from "@/utils";
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { json, redirect } from "@remix-run/react";
+import { redirect } from "@remix-run/react";
 import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,7 +25,7 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   const userToken = await getUserToken(request);
   if (!userToken) return redirect("/auth");
-  return json({ userToken });
+  return Response.json({ userToken });
 };
 
 export default function HelpPage() {
