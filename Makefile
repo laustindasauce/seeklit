@@ -22,6 +22,10 @@ install-packages:
 install-client:
 	@echo "Installing pnpm packages in the client folder..."
 	cd client && pnpm install
+	@echo 'VITE_API_URL="http://localhost:8416"' > client/.env
+	@echo 'SEEKLIT_ABS_URL=""' >> client/.env
+	@echo 'VITE_ABS_URL=""' >> client/.env
+	@echo 'VITE_ADMIN_EMAIL="dev@gmail.com"' >> client/.env
 
 install-server:
 	@echo "Installing all server dependencies"
