@@ -30,12 +30,7 @@ import {
 import { Book, Clock, Download, Edit, Info, Menu, Trash } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { useOptionalUser } from "@/utils";
-import {
-  json,
-  LoaderFunction,
-  LoaderFunctionArgs,
-  redirect,
-} from "@remix-run/node";
+import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
 import { localApi } from "@/lib/localApi";
 import { useLoaderData } from "@remix-run/react";
@@ -73,7 +68,7 @@ export const loader: LoaderFunction = async ({
   }
   const requests = await localApi.getRequests(origin, userToken);
   const data: LoaderData = { userToken, requests };
-  return json(data);
+  return Response.json(data);
 };
 
 const BookRequests = () => {

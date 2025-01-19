@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
-import { json, redirect } from "@remix-run/react";
+import { redirect } from "@remix-run/react";
 import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
 import { useDebounce, useOptionalUser } from "@/utils";
@@ -25,7 +25,7 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   const userToken = await getUserToken(request);
   if (!userToken) return redirect("/auth");
-  return json({ userToken });
+  return Response.json({ userToken });
 };
 
 export default function IndexHandler() {

@@ -29,12 +29,7 @@ import {
 import { Clock, Edit, Info, Menu, Trash } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { useOptionalUser } from "@/utils";
-import {
-  json,
-  LoaderFunction,
-  LoaderFunctionArgs,
-  redirect,
-} from "@remix-run/node";
+import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
 import { localApi } from "@/lib/localApi";
 import { useLoaderData } from "@remix-run/react";
@@ -72,7 +67,7 @@ export const loader: LoaderFunction = async ({
   }
   const issues = await localApi.getIssues(origin, userToken);
   const data: LoaderData = { userToken, issues };
-  return json(data);
+  return Response.json(data);
 };
 
 const Issues = () => {

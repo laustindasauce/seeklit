@@ -14,7 +14,6 @@ import { api } from "@/lib/api";
 import {
   ActionFunction,
   ActionFunctionArgs,
-  json,
   LoaderFunction,
   LoaderFunctionArgs,
   redirect,
@@ -35,7 +34,7 @@ export const action: ActionFunction = async ({
   try {
     const data = await api.login(clientOrigin, username, password);
     if (!data.user.token) {
-      return json(
+      return Response.json(
         { error: "Login failed. Please check your credentials." },
         { status: 401 }
       );
@@ -44,7 +43,7 @@ export const action: ActionFunction = async ({
     return createUserSession({ request, userToken: data.user.token });
   } catch (error) {
     console.error(error);
-    return json(
+    return Response.json(
       { error: "Login failed. Please check your credentials." },
       { status: 401 }
     );
@@ -56,7 +55,7 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   const userToken = await getUserToken(request);
   if (userToken) return redirect("/");
-  return json({});
+  return Response.json({});
 };
 
 export default function SignInPage() {

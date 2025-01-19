@@ -27,7 +27,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { localApi } from "@/lib/localApi";
 import { getEnvVal, isSensitiveKey } from "@/lib/utils";
+import { getUserToken } from "@/session.server";
 import { useOptionalUser } from "@/utils";
+import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import {
   AlertTriangleIcon,
   ConstructionIcon,
@@ -38,6 +40,15 @@ import {
   SaveIcon,
 } from "lucide-react";
 import React from "react";
+
+// Define the loader for user authentication.
+export const loader: LoaderFunction = async ({
+  request,
+}: LoaderFunctionArgs) => {
+  const userToken = await getUserToken(request);
+  if (!userToken) return redirect("/auth");
+  return Response.json({ userToken });
+};
 
 // Mock config data
 const defaultConfig = {
