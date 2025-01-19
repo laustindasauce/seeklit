@@ -4,7 +4,6 @@ WORKDIR /app
 
 LABEL maintainer="Austin Spencer <admin@laustinspace.dev>"
 
-COPY --from=cache /home/runner/go/pkg/mod /root/go/pkg/mod
 COPY server/go.mod server/go.sum ./
 
 RUN go mod download && go mod verify
