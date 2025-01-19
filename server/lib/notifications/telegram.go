@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/beego/beego/v2/adapter/logs"
 	"github.com/beego/beego/v2/core/config"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 // sendTelegramNotification sends a message to a Telegram chat using the bot token and chat ID from the environment.
