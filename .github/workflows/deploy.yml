@@ -1,0 +1,84 @@
+#
+name: Handle Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "client/**"
+      - "entrypoint-*.sh"
+      - "Dockerfile.*"
+    tags: ["v*.*.*"]
+
+env:
+  REGISTRY: ghcr.io
+  PLATFORMS: linux/amd64,linux/arm64
+  BUILD_CACHE: seeklit-build-cache
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - image: seeklit-client
+            context: .
+            file: Dockerfile.client
+
+          - image: seeklit-server
+            context: .
+            file: Dockerfile.server
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ env.PLATFORMS }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{matrix.image}}
+          flavor: |
+            latest=auto
+          tags: |
+            # branch event
+            type=ref,event=branch
+            # tag event
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          cache-from: type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.BUILD_CACHE }}:${{matrix.image}}
+          cache-to: mode=max,image-manifest=true,oci-mediatypes=true,type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.BUILD_CACHE }}:${{ matrix.image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: ${{ env.PLATFORMS }}
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+          file: ${{ matrix.file }}

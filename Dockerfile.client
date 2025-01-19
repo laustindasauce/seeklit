@@ -1,0 +1,44 @@
+FROM node:20-bullseye-slim AS base
+
+RUN npm install -g pnpm
+
+ARG VERSION
+ENV VITE_SEEKLIT_VERSION=${VERSION}
+ENV VITE_API_URL="BAKED_SEEKLIT_API_URL"
+ENV VITE_ABS_URL="BAKED_SEEKLIT_ABS_URL"
+ENV VITE_ADMIN_EMAIL="BAKED_SEEKLIT_ADMIN_EMAIL"
+ENV NODE_ENV=production
+
+RUN mkdir -p /data
+
+# Dependencies for Node.js (client) with dev dependencies for build
+FROM base AS client-deps
+WORKDIR /app/client
+COPY client/package.json client/pnpm-lock.yaml ./
+RUN pnpm install --prod
+
+# Build the Node.js client
+FROM client-deps AS client-build
+WORKDIR /app/client
+COPY client/ ./
+RUN pnpm run build
+
+# Combine everything into a minimal production image
+FROM base AS final
+WORKDIR /app
+
+# Copy Node.js production build and dependencies
+COPY --from=client-build /app/client/build /app/client/build
+COPY --from=client-build /app/client/public /app/client/public
+COPY --from=client-deps /app/client/package.json /app/client/package.json
+COPY --from=client-deps /app/client/node_modules /app/client/node_modules
+
+# Copy the entrypoint script
+COPY entrypoint-client.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint-client.sh
+
+# Expose port
+EXPOSE 3000
+
+# Set the entrypoint script
+ENTRYPOINT ["entrypoint-client.sh"]

@@ -1,0 +1,9 @@
+client/node_modules
+client/build
+LICENSE
+README.md
+tests/
+.env
+.devcontainer
+.github
+.vscode

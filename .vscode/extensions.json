@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "ms-vscode.go",
+    "esbenp.prettier-vscode",
+    "streetsidesoftware.code-spell-checker",
+    "cardinal90.multi-cursor-case-preserve"
+  ]
+}
