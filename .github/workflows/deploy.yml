@@ -31,28 +31,13 @@ jobs:
           - image: seeklit-client
             context: .
             file: Dockerfile.client
-            cache-path: $HOME/.pnpm-store
-            cache-pkg: pnpm
-            cache-files: "client/pnpm-lock.yaml"
 
           - image: seeklit-server
             context: .
             file: Dockerfile.server
-            cache-path: |
-              $HOME/.cache/go-build
-              $HOME/go/pkg/mod
-            cache-pkg: go
-            cache-files: "server/go.sum"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ matrix.cache-path }}
-          key: ${{ runner.os }}-${{ matrix.cache-pkg }}-${{ hashFiles(matrix.cache-files) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.cache-pkg }}-
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
