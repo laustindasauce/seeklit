@@ -2,7 +2,33 @@
 
 📚Book requesting web application
 
-## Build & Run [Docker]
+## Deploy with Docker Compose
+
+First copy the docker-compose.yml file into your local server.
+
+```bash
+curl -L -o docker-compose.yml "https://raw.githubusercontent.com/laustindasauce/seeklit/refs/heads/main/docker-compose.yml"
+```
+
+Next pull and run the containers
+
+```bash
+docker compose pull
+
+docker compose up -d
+```
+
+## Updating Containers
+
+```bash
+docker compose down
+
+docker compose pull
+
+docker compose up -d
+```
+
+## Local Docker Build & Run
 
 Server
 
@@ -17,7 +43,7 @@ Client
 ```bash
 docker build -f Dockerfile.client -t seeklit-client .
 
-docker run --name seeklit-client -p 8416:8416 \
+docker run --name seeklit-client -p 3014:3000 \
   -e SEEKLIT_API_URL= \
   -e SEEKLIT_ABS_URL= \
   -e SEEKLIT_ADMIN_EMAIL= \

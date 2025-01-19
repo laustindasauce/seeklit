@@ -15,8 +15,8 @@ services:
       - seeklit-server
 
   seeklit-server:
-    image: ghcr.io/laustindasauce/seeklit-client:latest
-    container_name: seeklit-client
+    image: ghcr.io/laustindasauce/seeklit-server:latest
+    container_name: seeklit-server
     ports:
       - "8416:8416"
     restart: always
