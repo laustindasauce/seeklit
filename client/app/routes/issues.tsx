@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Pagination,
@@ -364,7 +365,10 @@ const Issues = () => {
             >
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>{selectedIssue?.book_title}</DialogTitle>
+                  <DialogTitle>Issue #{selectedIssue?.id}</DialogTitle>
+                  <DialogDescription>
+                    by {selectedIssue?.creator_username}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">

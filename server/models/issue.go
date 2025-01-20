@@ -75,11 +75,11 @@ func (r *issueRepository) GetIssues(limit, offset int, creatorID *string) ([]Iss
 	var issues []Issue
 
 	// Start building the query
-	query := r.db
+	query := r.db.Order("id DESC")
 
 	// Apply filtering if CreatorID is provided
 	if creatorID != nil && *creatorID != "" {
-		query = query.Order("id DESC").Where("creator_id = ?", *creatorID)
+		query = query.Where("creator_id = ?", *creatorID)
 	}
 
 	// Apply Limit and Offset
