@@ -49,7 +49,7 @@ func (r *issueRepository) CreateIssue(issue *Issue) (*Issue, error) {
 func (r *issueRepository) GetIssues() ([]Issue, error) {
 	var Issue []Issue
 
-	if err := r.db.Find(&Issue).Error; err != nil {
+	if err := r.db.Order("id DESC").Find(&Issue).Error; err != nil {
 		return Issue, err
 	}
 
