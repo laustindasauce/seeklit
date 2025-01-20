@@ -91,11 +91,11 @@ func (r *requestRepository) GetBookRequests(limit, offset int, requestorID *stri
 	var bookRequests []BookRequest
 
 	// Start building the query
-	query := r.db
+	query := r.db.Order("id DESC")
 
 	// Apply filtering if RequestorID is provided
 	if requestorID != nil && *requestorID != "" {
-		query = query.Order("id DESC").Where("requestor_id = ?", *requestorID)
+		query = query.Where("requestor_id = ?", *requestorID)
 	}
 
 	// Apply Limit and Offset
