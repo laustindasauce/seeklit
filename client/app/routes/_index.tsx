@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
-import { redirect } from "@remix-run/react";
+import { redirect, useLoaderData } from "@remix-run/react";
 import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
 import { useDebounce, useOptionalUser } from "@/utils";
@@ -18,6 +18,13 @@ import ReadarrBookShelf from "@/components/ReadarrBookshelf";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import AbsBookShelf from "@/components/AbsBookshelf";
+import { api } from "@/lib/api";
+
+// Define the data type for the loader
+type LoaderData = {
+  userToken: string;
+  users: User[];
+};
 
 // Define the loader for user authentication.
 export const loader: LoaderFunction = async ({
@@ -25,11 +32,30 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   const userToken = await getUserToken(request);
   if (!userToken) return redirect("/auth");
-  return Response.json({ userToken });
+
+  const clientOrigin = request.headers.get("referer") || "";
+  let origin = "";
+  try {
+    const url = new URL(clientOrigin);
+    origin = url.origin;
+  } catch (error) {
+    console.error("Invalid URL in referer:", clientOrigin);
+  }
+
+  try {
+    const usersRes = await api.getUsers(origin, userToken);
+
+    return Response.json({ userToken, users: usersRes.users });
+  } catch (error) {
+    console.error(error);
+    // User isn't admin
+    return Response.json({ userToken, users: [] });
+  }
 };
 
 export default function IndexHandler() {
   const user = useOptionalUser();
+  const { users } = useLoaderData<LoaderData>();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -163,9 +189,6 @@ export default function IndexHandler() {
       return;
     }
     try {
-      req.requestor_id = user.id;
-      req.requestor_username = user.username;
-
       await localApi.createNewRequest(user.token, req);
 
       toast({
@@ -258,6 +281,7 @@ export default function IndexHandler() {
               <GoogleBookShelf
                 searchResults={googleSearchResults}
                 onRequestBook={handleRequest}
+                users={users}
               />
             )}
           {serverSettings?.metadata_provider === "OPENLIBRARY" &&
@@ -265,6 +289,7 @@ export default function IndexHandler() {
               <OpenLibraryBookshelf
                 searchResults={openLibrarySearchResults}
                 onRequestBook={handleRequest}
+                users={users}
               />
             )}
           {serverSettings?.metadata_provider === "HARDCOVER" &&
@@ -272,6 +297,7 @@ export default function IndexHandler() {
               <HardcoverBookshelf
                 searchResults={hardcoverSearchResults}
                 onRequestBook={handleRequest}
+                users={users}
               />
             )}
           {serverSettings?.metadata_provider === "READARR" &&

@@ -59,4 +59,22 @@ const getUser = async (baseUrl: string, token: string) => {
   }
 };
 
-export const api = { login, logout, getUser };
+const getUsers = async (baseUrl: string, token: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient(baseUrl);
+    const response: AxiosResponse<UsersResponse> = await apiClient.get(
+      `/api/users`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Get user error:", error);
+    throw error;
+  }
+};
+
+export const api = { login, logout, getUser, getUsers };
