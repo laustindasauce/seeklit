@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"api/database"
+	"api/middlewares"
 	"api/models"
 	"encoding/json"
 	"net/http"
@@ -19,15 +20,15 @@ type IssueController struct {
 // @Description create issue
 // @Param	body		body 	models.Issue	true		"body for issue content"
 // @Success 201 {object} []models.Issue
-// @Failure 403 body is empty
+// @Failure 400 bad request
 // @router / [post]
-func (r *IssueController) Post() {
+func (i *IssueController) Post() {
 	issue := new(models.Issue)
-	if err := json.Unmarshal(r.Ctx.Input.RequestBody, &issue); err != nil {
+	if err := json.Unmarshal(i.Ctx.Input.RequestBody, &issue); err != nil {
 		logs.Warn("Error unmarshalling CreateIssue body: %v\n", err)
-		r.Ctx.Output.SetStatus(http.StatusBadRequest)
-		r.Data["json"] = map[string]string{"error": "Unable to parse issue in body."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusBadRequest)
+		i.Data["json"] = map[string]string{"error": "Unable to parse issue in body."}
+		i.ServeJSON()
 		return
 	}
 
@@ -36,17 +37,17 @@ func (r *IssueController) Post() {
 	issue, err := issueRepository.CreateIssue(issue)
 	if err != nil {
 		logs.Warn("Error creating Issue: %v\n", err)
-		r.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		r.Data["json"] = map[string]string{"error": "Internal Server error occurred while creating issue."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		i.Data["json"] = map[string]string{"error": "Internal Server error occurred while creating issue."}
+		i.ServeJSON()
 		return
 	}
 
 	logs.Info("Issue #%d created successfully.", issue.ID)
 
-	r.Data["json"] = *issue
+	i.Data["json"] = *issue
 
-	r.Ctx.Output.SetStatus(http.StatusCreated)
+	i.Ctx.Output.SetStatus(http.StatusCreated)
 }
 
 // @Title GetAllIssues
@@ -56,64 +57,69 @@ func (r *IssueController) Post() {
 // @Success 200 {object} []models.Issue
 // @Failure 403 Unauthorized
 // @router / [get]
-func (r *IssueController) GetAll() {
-	// currentIssue, err := authenticatedIssue(b.Ctx)
-	// if err != nil {
-	// 	b.Ctx.Output.SetStatus(http.StatusForbidden)
-	// 	b.Data["json"] = map[string]string{"error": "Unauthorized"}
-	// 	b.ServeJSON()
-	// 	return
-	// }
+func (i *IssueController) GetAll() {
+	user := middlewares.GetUser(i.Ctx)
 
-	// limit, err := b.GetInt("limit", 20)
-	// if err != nil {
-	// 	limit = 20
-	// }
+	limit, err := i.GetInt("limit", 20)
+	if err != nil {
+		limit = 20
+	}
 
-	// offset, err := b.GetInt("offset", 0)
-	// if err != nil {
-	// 	offset = 0
-	// }
-
-	// var issues []models.IssueDTO
-	// if currentIssue.Type == "root" {
-	// 	issues = models.GetAllIssues(limit, offset)
-	// } else {
-	// 	issues = models.GetIssuesForIssue(limit, offset, currentIssue.ID)
-	// }
+	offset, err := i.GetInt("offset", 0)
+	if err != nil {
+		offset = 0
+	}
 
 	issueRepository := models.NewIssueRepository(database.DB)
 
-	issues, err := issueRepository.GetIssues()
+	// Set creator ID if the user isn't admin/root
+	var creatorID *string = nil
+	if user.Type != "root" && user.Type != "admin" {
+		creatorID = &user.ID
+	}
+
+	issues, err := issueRepository.GetIssues(limit, offset, creatorID)
 	if err != nil {
-		r.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		r.Data["json"] = map[string]string{"error": "Unable to retrieve issues due to an internal server error."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		i.Data["json"] = map[string]string{"error": "Unable to retrieve issues due to an internal server erroi."}
+		i.ServeJSON()
 		return
 	}
 
-	r.Data["json"] = issues
-	r.ServeJSON()
+	i.Data["json"] = issues
+	i.ServeJSON()
 }
 
 // @Title GetIssueByID
 // @Description get issue by id
-// @Param	id		path 	string	true		"The key for staticblock"
+// @Param	id		path 	string	true		"The Issue ID"
 // @Success 200 {object} models.Issue
 // @router /:id [get]
-func (u *IssueController) Get() {
-	id := u.GetString(":id")
+func (i *IssueController) Get() {
+	user := middlewares.GetUser(i.Ctx)
+
+	id := i.GetString(":id")
 
 	issueRepository := models.NewIssueRepository(database.DB)
 
 	issue, err := issueRepository.GetIssue(id)
 	if err != nil {
-		u.Data["json"] = err.Error()
-	} else {
-		u.Data["json"] = issue
+		i.Ctx.Output.SetStatus(http.StatusNotFound)
+		i.Data["json"] = map[string]string{"error": "No issue found with that id."}
+		i.ServeJSON()
+		return
 	}
 
-	u.ServeJSON()
+	if issue.CreatorID != user.ID && user.Type != "root" && user.Type != "admin" {
+		i.Ctx.Output.SetStatus(http.StatusForbidden)
+		i.Data["json"] = map[string]string{"error": "Access denied."}
+		i.ServeJSON()
+		return
+	}
+
+	i.Data["json"] = issue
+
+	i.ServeJSON()
 }
 
 // @Title Update
@@ -121,72 +127,90 @@ func (u *IssueController) Get() {
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Issue	true		"body for issue content"
 // @Success 200 {object} models.Issue
-// @Failure 403 :id is not int
+// @Failure 403 Unauthorized
 // @router /:id [patch]
-func (r *IssueController) Patch() {
-	id := r.GetString(":id")
+func (i *IssueController) Patch() {
+	user := middlewares.GetUser(i.Ctx)
+
+	id := i.GetString(":id")
 
 	issueRepository := models.NewIssueRepository(database.DB)
 
 	issue, err := issueRepository.GetIssue(id)
 	if err != nil {
-		r.Ctx.Output.SetStatus(http.StatusNotFound)
-		r.Data["json"] = map[string]string{"error": "No issue found with that id."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusNotFound)
+		i.Data["json"] = map[string]string{"error": "No issue found with that id."}
+		i.ServeJSON()
+		return
+	}
+
+	if issue.CreatorID != user.ID && user.Type != "root" && user.Type != "admin" {
+		i.Ctx.Output.SetStatus(http.StatusForbidden)
+		i.Data["json"] = map[string]string{"error": "Access denied."}
+		i.ServeJSON()
 		return
 	}
 
 	issueUpdate := new(models.IssueUpdate)
-	if err := json.Unmarshal(r.Ctx.Input.RequestBody, &issueUpdate); err != nil {
+	if err := json.Unmarshal(i.Ctx.Input.RequestBody, &issueUpdate); err != nil {
 		logs.Warn("Error unmarshalling UpdateIssue body: %v\n", err)
-		r.Ctx.Output.SetStatus(http.StatusBadRequest)
-		r.Data["json"] = map[string]string{"error": "Unable to parse issue update in body."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusBadRequest)
+		i.Data["json"] = map[string]string{"error": "Unable to parse issue update in body."}
+		i.ServeJSON()
 		return
 	}
 
 	issue, err = issueRepository.UpdateIssue(issue, *issueUpdate)
 	if err != nil {
 		logs.Warn("Error creating Issue: %v\n", err)
-		r.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		r.Data["json"] = map[string]string{"error": "Internal Server error occurred while creating issue."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		i.Data["json"] = map[string]string{"error": "Internal Server error occurred while creating issue."}
+		i.ServeJSON()
 		return
 	}
 
 	logs.Info("issue #%d updated successfully.", issue.ID)
 
-	r.Data["json"] = *issue
+	i.Data["json"] = *issue
 
-	r.ServeJSON()
+	i.ServeJSON()
 }
 
 // @Title Delete
 // @Description delete the issue
 // @Param	id		path 	string	true		"The id you want to delete"
 // @Success 204
-// @Failure 403 id is empty
+// @Failure 403 Unauthorized
 // @router /:id [delete]
-func (r *IssueController) Delete() {
-	id := r.GetString(":id")
+func (i *IssueController) Delete() {
+	user := middlewares.GetUser(i.Ctx)
+
+	id := i.GetString(":id")
 
 	issueRepository := models.NewIssueRepository(database.DB)
 
 	issue, err := issueRepository.GetIssue(id)
 	if err != nil {
-		r.Ctx.Output.SetStatus(http.StatusNotFound)
-		r.Data["json"] = map[string]string{"error": "No issue found with that id."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusNotFound)
+		i.Data["json"] = map[string]string{"error": "No issue found with that id."}
+		i.ServeJSON()
+		return
+	}
+
+	if issue.CreatorID != user.ID && user.Type != "root" && user.Type != "admin" {
+		i.Ctx.Output.SetStatus(http.StatusForbidden)
+		i.Data["json"] = map[string]string{"error": "Access denied."}
+		i.ServeJSON()
 		return
 	}
 
 	if err := issueRepository.DeleteIssue(issue); err != nil {
 		logs.Warn("Error deleting issue: %v\n", err)
-		r.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		r.Data["json"] = map[string]string{"error": "Internal Server error occurred while deleting issue."}
-		r.ServeJSON()
+		i.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		i.Data["json"] = map[string]string{"error": "Internal Server error occurred while deleting issue."}
+		i.ServeJSON()
 		return
 	}
 
-	r.Ctx.Output.SetStatus(http.StatusNoContent)
+	i.Ctx.Output.SetStatus(http.StatusNoContent)
 }
