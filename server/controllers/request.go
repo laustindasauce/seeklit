@@ -98,22 +98,34 @@ func (r *RequestController) GetAll() {
 
 // @Title GetRequestByID
 // @Description get bookRequest by id
-// @Param	id		path 	string	true		"The key for staticblock"
+// @Param	id		path 	string	true		"The Book Request ID"
 // @Success 200 {object} models.BookRequest
 // @router /:id [get]
-func (u *RequestController) Get() {
-	id := u.GetString(":id")
+func (r *RequestController) Get() {
+	user := middlewares.GetUser(r.Ctx)
+
+	id := r.GetString(":id")
 
 	requestRepository := models.NewRequestRepository(database.DB)
 
-	bookRequest, err := requestRepository.GetBookRequest(id)
+	request, err := requestRepository.GetBookRequest(id)
 	if err != nil {
-		u.Data["json"] = err.Error()
-	} else {
-		u.Data["json"] = bookRequest
+		r.Ctx.Output.SetStatus(http.StatusNotFound)
+		r.Data["json"] = map[string]string{"error": "No request found with that id."}
+		r.ServeJSON()
+		return
 	}
 
-	u.ServeJSON()
+	if request.RequestorID != user.ID && user.Type != "root" && user.Type != "admin" {
+		r.Ctx.Output.SetStatus(http.StatusForbidden)
+		r.Data["json"] = map[string]string{"error": "Access denied."}
+		r.ServeJSON()
+		return
+	}
+
+	r.Data["json"] = request
+
+	r.ServeJSON()
 }
 
 // @Title Update
@@ -124,6 +136,8 @@ func (u *RequestController) Get() {
 // @Failure 403 :id is not int
 // @router /:id [patch]
 func (r *RequestController) Patch() {
+	user := middlewares.GetUser(r.Ctx)
+
 	id := r.GetString(":id")
 
 	requestRepository := models.NewRequestRepository(database.DB)
@@ -132,6 +146,13 @@ func (r *RequestController) Patch() {
 	if err != nil {
 		r.Ctx.Output.SetStatus(http.StatusNotFound)
 		r.Data["json"] = map[string]string{"error": "No book request found with that id."}
+		r.ServeJSON()
+		return
+	}
+
+	if request.RequestorID != user.ID && user.Type != "root" && user.Type != "admin" {
+		r.Ctx.Output.SetStatus(http.StatusForbidden)
+		r.Data["json"] = map[string]string{"error": "Access denied."}
 		r.ServeJSON()
 		return
 	}
@@ -173,6 +194,8 @@ func (r *RequestController) Patch() {
 // @Failure 404 id not found
 // @router /:id [delete]
 func (r *RequestController) Delete() {
+	user := middlewares.GetUser(r.Ctx)
+
 	id := r.GetString(":id")
 
 	requestRepository := models.NewRequestRepository(database.DB)
@@ -181,6 +204,13 @@ func (r *RequestController) Delete() {
 	if err != nil {
 		r.Ctx.Output.SetStatus(http.StatusNotFound)
 		r.Data["json"] = map[string]string{"error": "No book request found with that id."}
+		r.ServeJSON()
+		return
+	}
+
+	if request.RequestorID != user.ID && user.Type != "root" && user.Type != "admin" {
+		r.Ctx.Output.SetStatus(http.StatusForbidden)
+		r.Data["json"] = map[string]string{"error": "Access denied."}
 		r.ServeJSON()
 		return
 	}
