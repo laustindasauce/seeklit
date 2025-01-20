@@ -80,7 +80,7 @@ func (r *requestRepository) CreateBookRequest(request *BookRequest) (*BookReques
 func (r *requestRepository) GetAllBookRequests() ([]BookRequest, error) {
 	var bookRequest []BookRequest
 
-	if err := r.db.Find(&bookRequest).Error; err != nil {
+	if err := r.db.Order("id DESC").Find(&bookRequest).Error; err != nil {
 		return bookRequest, err
 	}
 
@@ -95,7 +95,7 @@ func (r *requestRepository) GetBookRequests(limit, offset int, requestorID *stri
 
 	// Apply filtering if RequestorID is provided
 	if requestorID != nil && *requestorID != "" {
-		query = query.Where("requestor_id = ?", *requestorID)
+		query = query.Order("id DESC").Where("requestor_id = ?", *requestorID)
 	}
 
 	// Apply Limit and Offset
