@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { useOptionalUser } from "@/utils";
+import { Label } from "./ui/label";
 
 type Props = {
   selectedBook: NewBookRequest | null;
@@ -37,11 +38,23 @@ const RequestPrompt = (props: Props) => {
   } = props;
   const user = useOptionalUser();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [requestAs, setRequestAs] = React.useState<string>("");
+  const [requestAs, setRequestAs] = React.useState<{
+    username: string;
+    id: string;
+  }>({ username: "", id: "" });
+
+  React.useEffect(() => {
+    if (user) {
+      setRequestAs({ id: user.id, username: user.username });
+    }
+  }, [user]);
 
   const handleConfirmRequest = async () => {
     if (selectedBook && onRequestBook) {
       setIsLoading(true);
+
+      selectedBook.requestor_id = requestAs.id;
+      selectedBook.requestor_username = requestAs.username;
 
       await onRequestBook(selectedBook);
 
@@ -87,21 +100,32 @@ const RequestPrompt = (props: Props) => {
             </div>
           </div>
           {(user?.type === "admin" || user?.type === "root") && (
-            <Select
-              value={requestAs}
-              onValueChange={(val: string) => setRequestAs(val)}
-            >
-              <SelectTrigger id="language">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.username}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label htmlFor="approval">Request as</Label>
+              <Select
+                value={requestAs.id}
+                onValueChange={(val: string) => {
+                  const selectedUser = users?.find((user) => user.id === val);
+                  if (selectedUser) {
+                    setRequestAs({
+                      id: selectedUser.id,
+                      username: selectedUser.username,
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger id="language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {users?.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
         </div>
         <DialogFooter>

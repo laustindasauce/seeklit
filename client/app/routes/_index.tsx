@@ -43,9 +43,11 @@ export const loader: LoaderFunction = async ({
   }
 
   try {
-    const users = await api.getUsers(origin, userToken);
-    return Response.json({ userToken, users });
+    const usersRes = await api.getUsers(origin, userToken);
+
+    return Response.json({ userToken, users: usersRes.users });
   } catch (error) {
+    console.error(error);
     // User isn't admin
     return Response.json({ userToken, users: [] });
   }
@@ -187,9 +189,6 @@ export default function IndexHandler() {
       return;
     }
     try {
-      req.requestor_id = user.id;
-      req.requestor_username = user.username;
-
       await localApi.createNewRequest(user.token, req);
 
       toast({

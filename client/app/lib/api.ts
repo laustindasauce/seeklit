@@ -62,11 +62,14 @@ const getUser = async (baseUrl: string, token: string) => {
 const getUsers = async (baseUrl: string, token: string) => {
   try {
     const apiClient: AxiosInstance = getApiClient(baseUrl);
-    const response: AxiosResponse<User[]> = await apiClient.get(`/api/users`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response: AxiosResponse<UsersResponse> = await apiClient.get(
+      `/api/users`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Get user error:", error);

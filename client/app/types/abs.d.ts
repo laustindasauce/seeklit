@@ -191,3 +191,7 @@ type Author = {
   updatedAt: number;
   numBooks: number;
 };
+
+type UsersResponse = {
+  users: User[];
+};
