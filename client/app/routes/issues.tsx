@@ -27,7 +27,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Clock, Edit, Info, Menu, Trash } from "lucide-react";
+import { Clock, Edit, Info, Loader2Icon, Menu, Trash } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { useOptionalUser } from "@/utils";
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
@@ -76,6 +76,7 @@ const Issues = () => {
   const user = useOptionalUser();
   const { issues: reqs } = useLoaderData<LoaderData>();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 5;
@@ -436,25 +437,45 @@ const Issues = () => {
                 <DialogFooter>
                   {editing ? (
                     <Button
-                      className="bg-green-500"
                       type="button"
+                      className="bg-green-500"
                       onClick={async () => {
+                        setIsLoading(true);
                         await handleUpdate();
+                        setIsLoading(false);
                         handleCloseModal();
                       }}
+                      disabled={isLoading}
                     >
-                      Update
+                      {isLoading ? (
+                        <>
+                          <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                          Processing
+                        </>
+                      ) : (
+                        "Update"
+                      )}
                     </Button>
                   ) : (
                     <Button
                       className="bg-red-500"
                       type="button"
                       onClick={async () => {
+                        setIsLoading(true);
                         await handleDelete();
+                        setIsLoading(false);
                         handleCloseModal();
                       }}
+                      disabled={isLoading}
                     >
-                      Just do it already
+                      {isLoading ? (
+                        <>
+                          <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                          Processing
+                        </>
+                      ) : (
+                        "Just do it already"
+                      )}
                     </Button>
                   )}
                 </DialogFooter>
