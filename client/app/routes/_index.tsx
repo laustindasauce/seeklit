@@ -91,9 +91,9 @@ export default function IndexHandler() {
         try {
           const data = await localApi.googleSearch(token, query);
           const searchData = data.search_results as GoogleBook[];
-          setHasResults(searchData.length > 0);
           setGoogleSearchResults(searchData || []);
           setAbsSearchResults(data.abs_results);
+          setHasResults(searchData.length > 0);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -102,9 +102,9 @@ export default function IndexHandler() {
         try {
           const data = await localApi.openlibSearch(token, query);
           const searchRes = data.search_results as OpenLibraryResponse;
-          setHasResults(searchRes.docs.length > 0);
           setOpenLibrarySearchResults(searchRes.docs || []);
           setAbsSearchResults(data.abs_results);
+          setHasResults(searchRes.docs.length > 0);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -113,9 +113,9 @@ export default function IndexHandler() {
         try {
           const data = await localApi.hardcoverSearch(token, query);
           const searchData = data.search_results as HardcoverBook[];
-          setHasResults(searchData.length > 0);
           setHardcoverSearchResults(searchData || []);
           setAbsSearchResults(data.abs_results);
+          setHasResults(searchData.length > 0);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -124,9 +124,9 @@ export default function IndexHandler() {
         try {
           const data = await localApi.readarrSearch(token, query);
           const searchData = data.search_results as ReadarrBook[];
-          setHasResults(searchData.length > 0);
           setReadarrSearchResults(searchData || []);
           setAbsSearchResults(data.abs_results);
+          setHasResults(searchData.length > 0);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
