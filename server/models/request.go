@@ -132,13 +132,15 @@ func (r *requestRepository) UpdateBookRequest(bookRequest *BookRequest, updateBo
 		bookRequest.DownloadSource = updateBookRequest.DownloadSource
 	}
 
-	// Save the changes
-	if err := r.db.Save(bookRequest).Error; err != nil {
-		return nil, err
-	}
+	err := r.db.Model(bookRequest).
+		Updates(map[string]any{
+			"approval_status": bookRequest.ApprovalStatus,
+			"download_status": bookRequest.DownloadStatus,
+			"download_source": bookRequest.DownloadSource,
+		}).Error
 
 	// Return the updated bookRequest
-	return bookRequest, nil
+	return bookRequest, err
 }
 
 func (r *requestRepository) DeleteBookRequest(bookRequest *BookRequest) error {
