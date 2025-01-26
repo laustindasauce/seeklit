@@ -83,9 +83,14 @@ func HandleSearchAndDownload(request models.BookRequest) (*CWABook, error) {
 		books, err = search(cwaURL, request.Title)
 	}
 
-	if err != nil || len(books) == 0 {
+	if err != nil {
+		logs.Warn("Hit an error while attempting download: \n%v\n", err)
+		return nil, err
+	}
+
+	if len(books) == 0 {
 		logs.Info("No results found when searching with CWA")
-		return nil, nil
+		return nil, errors.New("No results found when searching with CWA")
 	}
 
 	maxMB := config.DefaultFloat("download::ebookmaxbytes", 25<<20) / (1024 * 1024)
