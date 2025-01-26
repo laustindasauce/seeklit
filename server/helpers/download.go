@@ -15,7 +15,7 @@ func HandleDownload(request *models.BookRequest, requestRepository models.Reques
 	var dlSource *string
 
 	book, err := cwa.HandleSearchAndDownload(*request)
-	if err != nil {
+	if err != nil || book == nil {
 		logs.Info("Unable to download book check logs. Updating status...")
 		status = models.DSFailure
 	} else {
