@@ -3,9 +3,11 @@ package controllers
 import (
 	"api/database"
 	"api/helpers"
+	"api/lib/notifications"
 	"api/middlewares"
 	"api/models"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -45,6 +47,10 @@ func (r *RequestController) Post() {
 	}
 
 	logs.Info("Book request #%d created successfully.", request.ID)
+	message := fmt.Sprintf(`🆕📔 request #%d submitted on Seeklit by %s!!
+		%s by %s`, request.ID, request.RequestorUsername,
+		request.Title, request.Author)
+	notifications.SendNotification(message)
 
 	if request.ApprovalStatus == models.ASApproved {
 		request = helpers.HandleDownload(request, requestRepository)
