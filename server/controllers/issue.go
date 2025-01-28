@@ -2,11 +2,14 @@ package controllers
 
 import (
 	"api/database"
+	"api/lib/notifications"
 	"api/middlewares"
 	"api/models"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/beego/beego/v2/core/config"
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
 )
@@ -44,6 +47,10 @@ func (i *IssueController) Post() {
 	}
 
 	logs.Info("Issue #%d created successfully.", issue.ID)
+	message := fmt.Sprintf(`🆕📔 issue #%d submitted on Seeklit by %s!!
+		%s: %s/item/%s`, issue.ID, issue.CreatorUsername,
+		issue.BookTitle, config.DefaultString("general::audiobookshelfurl", ""), issue.BookID)
+	notifications.SendNotification(message)
 
 	i.Data["json"] = *issue
 
