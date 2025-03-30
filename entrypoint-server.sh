@@ -10,5 +10,5 @@ else
     echo "Configuration file found at $SEEKLIT_CONF_FILE."
 fi
 
-# Execute the main process (your Go API binary)
+# Execute the main process
 /app/main
