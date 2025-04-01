@@ -7,25 +7,25 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-func SendNotification(message string) {
-	if config.DefaultBool("notify::telegramenabled", false) {
-		err := sendTelegramNotification(message)
+func SendNotification(title, body string) {
+	if config.DefaultBool("notify::enabled", false) {
+		err := sendAppriseNotification(title, body)
 		if err != nil {
-			logs.Warn("Unable to send telegarm notification: %v\n", err)
-			logs.Info(message)
+			logs.Warn("Unable to send notification: %v\n", err)
+			logs.Info(title + "\n" + body)
 		}
 	}
 }
 
 func SendErrorNotification(location, info string, err error) {
-	title := "⛔☢️⛔ Seeklit application caught an error!\n"
-	message := fmt.Sprintf("%sLocation: %s\nInfo: %s\nError: %v", title, location, info, err)
+	title := "⛔☢️⛔ Seeklit application caught an error!"
+	body := fmt.Sprintf("Location: %s\nInfo: %s\nError: %v", location, info, err)
 
-	if config.DefaultBool("notify::telegramenabled", false) {
-		err := sendTelegramNotification(message)
+	if config.DefaultBool("notify::enabled", false) {
+		err := sendAppriseNotification(title, body)
 		if err != nil {
-			logs.Warn("Unable to send telegarm notification: %v\n", err)
-			logs.Warn(message)
+			logs.Warn("Unable to send notification: %v\n", err)
+			logs.Warn(title + "\n" + body)
 		}
 	}
 }
