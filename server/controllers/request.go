@@ -47,10 +47,9 @@ func (r *RequestController) Post() {
 	}
 
 	logs.Info("Book request #%d created successfully.", request.ID)
-	message := fmt.Sprintf(`🆕📔 request #%d submitted on Seeklit by %s!!
-		%s by %s`, request.ID, request.RequestorUsername,
-		request.Title, request.Author)
-	notifications.SendNotification(message)
+	title := fmt.Sprintf("🆕📔 request #%d submitted on Seeklit by %s!!", request.ID, request.RequestorUsername)
+	body := fmt.Sprintf(`%s by %s`, request.Title, request.Author)
+	notifications.SendNotification(title, body)
 
 	if request.ApprovalStatus == models.ASApproved {
 		request = helpers.HandleDownload(request, requestRepository)

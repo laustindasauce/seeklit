@@ -47,10 +47,10 @@ func (i *IssueController) Post() {
 	}
 
 	logs.Info("Issue #%d created successfully.", issue.ID)
-	message := fmt.Sprintf(`🆕📔 issue #%d submitted on Seeklit by %s!!
-		%s: %s/item/%s`, issue.ID, issue.CreatorUsername,
-		issue.BookTitle, config.DefaultString("general::audiobookshelfurl", ""), issue.BookID)
-	notifications.SendNotification(message)
+	title := fmt.Sprintf("🆕📔 issue #%d submitted on Seeklit by %s!!", issue.ID, issue.CreatorUsername)
+	body := fmt.Sprintf(`%s: %s/item/%s`, issue.BookTitle,
+		config.DefaultString("general::audiobookshelfurl", ""), issue.BookID)
+	notifications.SendNotification(title, body)
 
 	i.Data["json"] = *issue
 

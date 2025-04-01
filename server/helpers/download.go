@@ -21,19 +21,18 @@ func HandleDownload(request *models.BookRequest, requestRepository models.Reques
 	} else {
 		cwaStr := "cwa"
 		dlSource = &cwaStr
-		message := fmt.Sprintf(`✔️🎉 request #%d downloaded!
-
-		Source: %s
+		title := fmt.Sprintf("✔️🎉 request #%d downloaded!", request.ID)
+		body := fmt.Sprintf(`Source: %s
 
 		Title: %s
 		Author: %s
 		ID: %s
 		Size: %s
 		Format: %s
-		Year: %s`, request.ID, cwaStr, book.Title, book.Author, book.ID,
+		Year: %s`, cwaStr, book.Title, book.Author, book.ID,
 			book.Size, book.Format, book.Year)
 
-		notifications.SendNotification(message)
+		notifications.SendNotification(title, body)
 		status = models.DSComplete
 	}
 
