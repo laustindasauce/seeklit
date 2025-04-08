@@ -114,6 +114,7 @@ const getServerSettings = async () => {
   }
 };
 
+// Function to retrieve server config
 const getServerConfig = async (token: string) => {
   try {
     const apiClient: AxiosInstance = getApiClient();
@@ -132,6 +133,7 @@ const getServerConfig = async (token: string) => {
   }
 };
 
+// Function to update the server config
 const updateServerConfig = async (token: string, conf: ServerConfigUpdate) => {
   try {
     const apiClient: AxiosInstance = getApiClient();
@@ -171,7 +173,7 @@ const createNewRequest = async (token: string, req: NewBookRequest) => {
   }
 };
 
-// Function to submit a request
+// Function to get requests
 const getRequests = async (baseUrl: string, token: string) => {
   try {
     const apiClient: AxiosInstance = getApiClient(baseUrl);
@@ -308,12 +310,32 @@ const deleteIssue = async (token: string, reqId: number) => {
   }
 };
 
+// Function to retrieve books recently added
+const getRecentBooks = async (baseUrl: string, token: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient(baseUrl);
+    const response: AxiosResponse<LocalSearchResponse> = await apiClient.get(
+      "/search/personalized",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Search error:", error);
+    throw error;
+  }
+};
+
 export const localApi = {
   createNewIssue,
   createNewRequest,
   deleteIssue,
   deleteRequest,
   getIssues,
+  getRecentBooks,
   getRequests,
   getServerConfig,
   getServerSettings,

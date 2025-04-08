@@ -10,11 +10,13 @@ import React from "react";
 interface BookShelfProps {
   searchResults?: BookItem[];
   onSubmitIssue?: (issue: NewIssue) => Promise<void>;
+  title?: string;
 }
 
 export default function AbsBookShelf({
   searchResults = [],
   onSubmitIssue,
+  title,
 }: BookShelfProps) {
   const [newIssue, setNewIssue] = React.useState<NewIssue | null>();
   const clientOrigin =
@@ -37,7 +39,7 @@ export default function AbsBookShelf({
   return (
     <main className="flex-1 overflow-y-auto p-4">
       <ScrollArea className="h-full">
-        <h2 className="text-2xl font-semibold mb-4">In Library</h2>
+        <h2 className="text-2xl font-semibold mb-4">{title || "In Library"}</h2>
         {searchResults && searchResults.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {searchResults.map((book) => {

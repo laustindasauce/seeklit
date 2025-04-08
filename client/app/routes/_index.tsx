@@ -19,11 +19,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import AbsBookShelf from "@/components/AbsBookshelf";
 import { api } from "@/lib/api";
+import { getEnvVal } from "@/lib/utils";
 
 // Define the data type for the loader
 type LoaderData = {
   userToken: string;
   users: User[];
+  recentBooks: BookItem[];
 };
 
 // Define the loader for user authentication.
@@ -44,8 +46,14 @@ export const loader: LoaderFunction = async ({
 
   try {
     const usersRes = await api.getUsers(origin, userToken);
+    const absUrl = getEnvVal(import.meta.env.VITE_ABS_URL, clientOrigin);
+    const absPersonalizedResults = await localApi.getRecentBooks(
+      absUrl,
+      userToken
+    );
+    const recentBooks = absPersonalizedResults.abs_results;
 
-    return Response.json({ userToken, users: usersRes.users });
+    return Response.json({ userToken, users: usersRes.users, recentBooks });
   } catch (error) {
     console.error(error);
     // User isn't admin
@@ -55,11 +63,12 @@ export const loader: LoaderFunction = async ({
 
 export default function IndexHandler() {
   const user = useOptionalUser();
-  const { users } = useLoaderData<LoaderData>();
+  const { users, recentBooks } = useLoaderData<LoaderData>();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [absSearchResults, setAbsSearchResults] = useState<BookItem[]>([]);
+  const absRecentBooks: BookItem[] = recentBooks;
   const [googleSearchResults, setGoogleSearchResults] = useState<GoogleBook[]>(
     []
   );
@@ -310,12 +319,18 @@ export default function IndexHandler() {
           {!hasResults &&
             absSearchResults.length === 0 &&
             !debouncedSearchQuery && (
-              <div className="flex flex-col items-center justify-center text-center">
-                {/* <p className="text-xl font-semibold text-gray-500">
-                Oops, just empty shelves here.
-              </p> */}
-                <p className="text-gray-400">Seek for a new book!</p>
-              </div>
+              <>
+                {absSearchResults.length === 0 && absRecentBooks.length > 0 && (
+                  <AbsBookShelf
+                    searchResults={absRecentBooks}
+                    onSubmitIssue={handleNewIssue}
+                    title="Recently Added"
+                  />
+                )}
+                <div className="flex flex-col items-center justify-center text-center">
+                  <p className="text-gray-400">Seek for a new book!</p>
+                </div>
+              </>
             )}
           {!hasResults &&
             absSearchResults.length === 0 &&
