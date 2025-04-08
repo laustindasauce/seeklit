@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -329,7 +330,30 @@ func (s *SearchController) HardcoverSearch() {
 	s.ServeJSON()
 }
 
-func handleAbsSearch(token string, query string) ([]any, error) {
+// @Title Audiobookshelf Personalized Search
+// @Description perform personalized library search
+// @Success 200 {object} map[string]any
+// @router /personalized [get]
+func (s *SearchController) PersonalizedSearch() {
+	user := middlewares.GetUser(s.Ctx)
+
+	absResults, err := handleAbsPersonalizedSearch(user.Token)
+	if err != nil {
+		logs.Warn("Unable to complete audiobookshelf personalized search. %v", err)
+		absResults = []any{}
+	}
+
+	// Return the search results
+	result := map[string]any{
+		"abs_results": absResults,
+	}
+
+	s.Data["json"] = result
+
+	s.ServeJSON()
+}
+
+func handleAbsSearch(token, query string) ([]any, error) {
 	var booksInLibrary []any
 
 	libraryIds, err := getLibraries(token)
@@ -349,6 +373,100 @@ func handleAbsSearch(token string, query string) ([]any, error) {
 	}
 
 	return booksInLibrary, nil
+}
+
+func handleAbsPersonalizedSearch(token string) ([]any, error) {
+	var booksInLibrary []any
+
+	libraryIds, err := getLibraries(token)
+	if err != nil {
+		logs.Warning("Unable to retrieve libraries")
+		return nil, err
+	}
+
+	for _, id := range libraryIds {
+		logs.Debug("Getting recently added books for library: %s", id)
+		recentlyAddedBooks, err := getPersonalizedLibrary(token, id)
+		if err != nil {
+			logs.Warning("Unable to search libraries %v", err)
+			continue
+		}
+
+		if recentlyAddedBooks != nil {
+			booksInLibrary = append(booksInLibrary, recentlyAddedBooks...)
+		}
+	}
+
+	if booksInLibrary == nil {
+		booksInLibrary = []any{}
+	}
+
+	return booksInLibrary, nil
+}
+
+func getPersonalizedLibrary(token, libraryId string) ([]any, error) {
+	absUrl, err := config.String("general::audiobookshelfurl")
+	if err != nil || absUrl == "" {
+		logs.Critical("Missing general::audiobookshelfurl config... Unable to authenticate.")
+		return []any{}, fmt.Errorf("missing general::audiobookshelfurl config")
+	}
+
+	url := fmt.Sprintf("%s/audiobookshelf/api/libraries/%s/personalized", absUrl, libraryId)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logs.Critical("Error creating request: %v", err)
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logs.Critical("Error fetching libraries: %v", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error: Received status code %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	// Unmarshal into an anonymous struct to grab "recently-added"
+	var response []struct {
+		ID       string `json:"id"`
+		Entities []any  `json:"entities"`
+	}
+
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %w", err)
+	}
+
+	// Step 2: Build []map[string]any to return BookItem-style objects
+	var results []any
+
+	for _, section := range response {
+		if section.ID == "recently-added" {
+			for _, entity := range section.Entities {
+				book := map[string]any{
+					"libraryItem": entity,
+				}
+				results = append(results, book)
+			}
+			break
+		}
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no recently added items found")
+	}
+
+	return results, nil
 }
 
 func getLibraries(token string) ([]string, error) {
