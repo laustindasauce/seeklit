@@ -29,10 +29,10 @@ func init() {
 
 func main() {
 	if config.DefaultString("runmode", "prod") == "dev" {
-		// Enable CORS for all routes
+		// Enable CORS
 		beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 			// AllowAllOrigins:  true,
-			AllowOrigins:     []string{"http://localhost:3000"},
+			AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
 			AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "OPTIONS", "DELETE"},
 			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
 			ExposeHeaders:    []string{"Content-Length", "Content-Type"},

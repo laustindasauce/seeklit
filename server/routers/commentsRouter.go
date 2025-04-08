@@ -196,4 +196,13 @@ func init() {
             Filters: nil,
             Params: nil})
 
+    beego.GlobalControllerRouter["api/controllers:SearchController"] = append(beego.GlobalControllerRouter["api/controllers:SearchController"],
+        beego.ControllerComments{
+            Method: "PersonalizedSearch",
+            Router: `/personalized`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
 }
