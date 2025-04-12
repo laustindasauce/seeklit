@@ -7,7 +7,7 @@ import { Loader2, Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { redirect, useLoaderData } from "@remix-run/react";
 import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { getUserToken } from "@/session.server";
+import { getUserToken, logout } from "@/session.server";
 import { useDebounce, useOptionalUser } from "@/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { localApi } from "@/lib/localApi";
@@ -42,6 +42,7 @@ export const loader: LoaderFunction = async ({
     origin = url.origin;
   } catch (error) {
     console.error("Invalid URL in referer:", clientOrigin);
+    return await logout(request);
   }
 
   try {
@@ -57,7 +58,7 @@ export const loader: LoaderFunction = async ({
   } catch (error) {
     console.error(error);
     // User isn't admin
-    return Response.json({ userToken, users: [] });
+    return Response.json({ userToken, users: [], recentBooks: [] });
   }
 };
 
