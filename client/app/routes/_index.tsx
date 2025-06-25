@@ -115,13 +115,13 @@ export const loader: LoaderFunction = async ({
     return await logout(request);
   }
 
-  const absBaseUrl = getEnvVal(process.env.VITE_ABS_URL, origin);
+  const absBaseUrl = getEnvVal(process.env.SEEKLIT_ABS_URL, origin);
 
   try {
     const usersRes = await api.getUsers(origin, userToken);
-    const absUrl = getEnvVal(process.env.SEEKLIT_API_URL, origin);
+    const apiBaseUrl = getEnvVal(process.env.SEEKLIT_API_URL, origin);
     const absPersonalizedResults = await localApi.getRecentBooks(
-      absUrl,
+      apiBaseUrl,
       userToken
     );
     const recentBooks = absPersonalizedResults.abs_results;
