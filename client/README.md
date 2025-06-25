@@ -2,6 +2,10 @@
 
 - 📖 [Remix docs](https://remix.run/docs)
 
+## How to Run
+
+To run this client you will also need a backend server present. This server can be run by following the docs on [seeklit's GitHub repository](https://github.com/laustindasauce/seeklit)
+
 ## Development
 
 Run the dev server:
