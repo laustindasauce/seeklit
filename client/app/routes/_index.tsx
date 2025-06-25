@@ -11,22 +11,92 @@ import { getUserToken, logout } from "@/session.server";
 import { useDebounce, useOptionalUser } from "@/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { localApi } from "@/lib/localApi";
-import HardcoverBookshelf from "@/components/HardcoverBookshelf";
-import GoogleBookShelf from "@/components/GoogleBookshelf";
-import OpenLibraryBookshelf from "@/components/OpenLibraryBookshelf";
-import ReadarrBookShelf from "@/components/ReadarrBookshelf";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import AbsBookShelf from "@/components/AbsBookshelf";
 import { api } from "@/lib/api";
 import { getEnvVal } from "@/lib/utils";
+import UniversalBookShelf, {
+  UniversalBook,
+} from "@/components/UniversalBookShelf";
 
 // Define the data type for the loader
 type LoaderData = {
   userToken: string;
   users: User[];
   recentBooks: BookItem[];
+  absBaseUrl: string;
 };
+
+const transformAbsBook = (
+  book: BookItem,
+  absBaseUrl: string
+): UniversalBook => ({
+  id: `ABS_${book.libraryItem.id}`,
+  title: book.libraryItem.media.metadata.title,
+  author: book.libraryItem.media.metadata.authorName,
+  coverUrl: `${absBaseUrl}/api/items/${book.libraryItem.id}/cover`,
+  infoLink: `${absBaseUrl}/item/${book.libraryItem.id}`,
+  source: "ABS",
+  source_id: book.libraryItem.id,
+  isAudiobook: book.libraryItem.media.numAudioFiles > 0,
+});
+
+const transformGoogleBook = (book: GoogleBook): UniversalBook => ({
+  id: `GOOGLE_${book.id}`,
+  title: book.volumeInfo.title,
+  author: book.volumeInfo.authors?.join(", ") || null,
+  coverUrl:
+    book.volumeInfo.imageLinks?.thumbnail?.replace("http:", "https:") || null,
+  infoLink: book.volumeInfo.infoLink || null,
+  source: "GOOGLE",
+  source_id: book.id,
+  isbn_10:
+    book.volumeInfo.industryIdentifiers?.find((id) => id.type === "ISBN_10")
+      ?.identifier || null,
+  isbn_13:
+    book.volumeInfo.industryIdentifiers?.find((id) => id.type === "ISBN_13")
+      ?.identifier || null,
+  description: book.volumeInfo.description || null,
+  isAudiobook: false,
+});
+
+const transformOpenLibraryBook = (book: OpenLibraryBook): UniversalBook => ({
+  id: `OPENLIBRARY_${book.info_link?.split("/").pop() || book.title}`,
+  title: book.title,
+  author: book.author_name?.join(", ") || null,
+  coverUrl: book.cover_images?.medium || null,
+  infoLink: book.info_link || null,
+  source: "OPENLIBRARY",
+  source_id: book.info_link?.split("/").pop() || "none",
+  description: null,
+  isAudiobook: false,
+});
+
+const transformHardcoverBook = (book: HardcoverBook): UniversalBook => ({
+  id: `HARDCOVER_${book.id}`,
+  title: book.title,
+  author: book.contributions?.[0]?.author.name || null,
+  coverUrl: book.images?.[0]?.url || null,
+  infoLink: `https://hardcover.app/books/${book.slug}`,
+  source: "HARDCOVER",
+  source_id: book.id.toString(),
+  isbn_10: book.default_physical_edition?.isbn_10 || null,
+  isbn_13: book.default_physical_edition?.isbn_13 || null,
+  description: book.description || null,
+  isAudiobook: false,
+});
+
+const transformReadarrBook = (book: ReadarrBook): UniversalBook => ({
+  id: `READARR_${book.id}`,
+  title: book.title,
+  author: book.authorTitle,
+  coverUrl: book.remoteCover || null,
+  infoLink: null,
+  source: "READARR",
+  source_id: book.id.toString(),
+  description: book.overview || null,
+  isAudiobook: false,
+});
 
 // Define the loader for user authentication.
 export const loader: LoaderFunction = async ({
@@ -45,6 +115,8 @@ export const loader: LoaderFunction = async ({
     return await logout(request);
   }
 
+  const absBaseUrl = getEnvVal(process.env.VITE_ABS_URL, origin);
+
   try {
     const usersRes = await api.getUsers(origin, userToken);
     const absUrl = getEnvVal(process.env.SEEKLIT_API_URL, origin);
@@ -54,40 +126,41 @@ export const loader: LoaderFunction = async ({
     );
     const recentBooks = absPersonalizedResults.abs_results;
 
-    return Response.json({ userToken, users: usersRes.users, recentBooks });
+    return Response.json({
+      userToken,
+      users: usersRes.users,
+      recentBooks,
+      absBaseUrl,
+    });
   } catch (error) {
     console.error(error);
     // User isn't admin
-    return Response.json({ userToken, users: [], recentBooks: [] });
+    return Response.json({ userToken, users: [], recentBooks: [], absBaseUrl });
   }
 };
 
 export default function IndexHandler() {
   const user = useOptionalUser();
-  const { users, recentBooks } = useLoaderData<LoaderData>();
+  const { users, recentBooks, absBaseUrl } = useLoaderData<LoaderData>();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [absSearchResults, setAbsSearchResults] = useState<BookItem[]>([]);
-  const absRecentBooks: BookItem[] = recentBooks;
-  const [googleSearchResults, setGoogleSearchResults] = useState<GoogleBook[]>(
-    []
-  );
-  const [openLibrarySearchResults, setOpenLibrarySearchResults] = useState<
-    OpenLibraryBook[]
-  >([]);
-  const [hardcoverSearchResults, setHardcoverSearchResults] = useState<
-    HardcoverBook[]
-  >([]);
-  const [readarrSearchResults, setReadarrSearchResults] = useState<
-    ReadarrBook[]
-  >([]);
   const [isSearching, setIsSearching] = useState(false);
   const [serverSettings, setServerSettings] = useState<LocalServerSettings>();
 
+  const [absSearchResults, setAbsSearchResults] = useState<UniversalBook[]>([]);
+  const [externalSearchResults, setExternalSearchResults] = useState<
+    UniversalBook[]
+  >([]);
+
+  const absRecentBooks: UniversalBook[] = recentBooks.map((book) =>
+    transformAbsBook(book, absBaseUrl)
+  );
+
   // Debounced value will only update after a delay of 300ms
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  const [hasResults, setHasResults] = useState(false);
+  const hasResults =
+    externalSearchResults.length > 0 || absSearchResults.length > 0;
 
   const handleSearch = async (
     token: string,
@@ -95,54 +168,64 @@ export default function IndexHandler() {
     query: string
   ) => {
     setIsSearching(true);
+    let externalData: UniversalBook[] = [];
+    let absData: UniversalBook[] = [];
 
-    switch (provider) {
-      case "GOOGLE":
-        try {
+    try {
+      switch (provider) {
+        case "GOOGLE": {
           const data = await localApi.googleSearch(token, query);
-          const searchData = data.search_results as GoogleBook[];
-          setGoogleSearchResults(searchData || []);
-          setAbsSearchResults(data.abs_results);
-          setHasResults(searchData.length > 0);
-        } catch (error) {
-          console.error("Error fetching data:", error);
+          externalData = (data.search_results as GoogleBook[]).map(
+            transformGoogleBook
+          );
+          absData = (data.abs_results as BookItem[]).map((book) =>
+            transformAbsBook(book, absBaseUrl)
+          );
+          break;
         }
-        return setIsSearching(false);
-      case "OPENLIBRARY":
-        try {
+        case "OPENLIBRARY": {
           const data = await localApi.openlibSearch(token, query);
           const searchRes = data.search_results as OpenLibraryResponse;
-          setOpenLibrarySearchResults(searchRes.docs || []);
-          setAbsSearchResults(data.abs_results);
-          setHasResults(searchRes.docs.length > 0);
-        } catch (error) {
-          console.error("Error fetching data:", error);
+          externalData = (searchRes.docs || []).map(transformOpenLibraryBook);
+          absData = (data.abs_results as BookItem[]).map((book) =>
+            transformAbsBook(book, absBaseUrl)
+          );
+          break;
         }
-        return setIsSearching(false);
-      case "HARDCOVER":
-        try {
+        case "HARDCOVER": {
           const data = await localApi.hardcoverSearch(token, query);
-          const searchData = data.search_results as HardcoverBook[];
-          setHardcoverSearchResults(searchData || []);
-          setAbsSearchResults(data.abs_results);
-          setHasResults(searchData.length > 0);
-        } catch (error) {
-          console.error("Error fetching data:", error);
+          externalData = (data.search_results as HardcoverBook[]).map(
+            transformHardcoverBook
+          );
+          absData = (data.abs_results as BookItem[]).map((book) =>
+            transformAbsBook(book, absBaseUrl)
+          );
+          break;
         }
-        return setIsSearching(false);
-      case "READARR":
-        try {
+        case "READARR": {
           const data = await localApi.readarrSearch(token, query);
-          const searchData = data.search_results as ReadarrBook[];
-          setReadarrSearchResults(searchData || []);
-          setAbsSearchResults(data.abs_results);
-          setHasResults(searchData.length > 0);
-        } catch (error) {
-          console.error("Error fetching data:", error);
+          externalData = (data.search_results as ReadarrBook[]).map(
+            transformReadarrBook
+          );
+          absData = (data.abs_results as BookItem[]).map((book) =>
+            transformAbsBook(book, absBaseUrl)
+          );
+          break;
         }
-        return setIsSearching(false);
-      default:
-        setIsSearching(false);
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Search Error",
+        description: "Failed to fetch search results.",
+        variant: "destructive",
+      });
+    } finally {
+      setExternalSearchResults(externalData);
+      setAbsSearchResults(absData);
+      setIsSearching(false);
     }
   };
 
@@ -159,11 +242,7 @@ export default function IndexHandler() {
     if (searchQuery === "") {
       setIsSearching(false);
       setAbsSearchResults([]);
-      setGoogleSearchResults([]);
-      setOpenLibrarySearchResults([]);
-      setHardcoverSearchResults([]);
-      setReadarrSearchResults([]);
-      setHasResults(false);
+      setExternalSearchResults([]);
     }
   }, [searchQuery]);
 
@@ -195,6 +274,7 @@ export default function IndexHandler() {
         title: "Invalid Book",
         description:
           "This book isn't valid for request due to missing metadata. Please find a different edition.",
+        variant: "destructive",
       });
       return;
     }
@@ -210,6 +290,7 @@ export default function IndexHandler() {
       toast({
         title: "Error",
         description: "Something went wrong submitting your book request.",
+        variant: "destructive",
       });
     }
   };
@@ -231,6 +312,7 @@ export default function IndexHandler() {
       toast({
         title: "Error",
         description: "Something went wrong reporting the issue.",
+        variant: "destructive",
       });
     }
   };
@@ -256,96 +338,75 @@ export default function IndexHandler() {
                 <Input
                   type="search"
                   placeholder="Seek..."
-                  // className="pr-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeydown}
                 />
                 {isSearching && (
-                  <div className="absolute inset-y-0 right-0 pr-10 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 )}
               </div>
               <div className="ml-4 flex items-center">
                 <Avatar>
-                  {/* <AvatarImage src="/placeholder-avatar.jpg" alt={user?.username} /> */}
                   <AvatarFallback>
                     {user?.username.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {/* <span className="ml-2 text-sm font-medium">{user?.username}</span> */}
               </div>
             </div>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4">
           {absSearchResults.length > 0 && (
-            <AbsBookShelf
-              searchResults={absSearchResults}
+            <UniversalBookShelf
+              shelfType="ABS"
+              title="In Library"
+              dataSource={absSearchResults}
               onSubmitIssue={handleNewIssue}
+              absBaseUrl={absBaseUrl}
             />
           )}
-          {serverSettings?.metadata_provider === "GOOGLE" &&
-            googleSearchResults.length > 0 && (
-              <GoogleBookShelf
-                searchResults={googleSearchResults}
-                onRequestBook={handleRequest}
-                users={users}
-              />
-            )}
-          {serverSettings?.metadata_provider === "OPENLIBRARY" &&
-            openLibrarySearchResults.length > 0 && (
-              <OpenLibraryBookshelf
-                searchResults={openLibrarySearchResults}
-                onRequestBook={handleRequest}
-                users={users}
-              />
-            )}
-          {serverSettings?.metadata_provider === "HARDCOVER" &&
-            hardcoverSearchResults.length > 0 && (
-              <HardcoverBookshelf
-                searchResults={hardcoverSearchResults}
-                onRequestBook={handleRequest}
-                users={users}
-              />
-            )}
-          {serverSettings?.metadata_provider === "READARR" &&
-            readarrSearchResults.length > 0 && (
-              <ReadarrBookShelf
-                searchResults={readarrSearchResults}
-                onRequestBook={handleRequest}
-              />
-            )}
-          {!hasResults &&
-            absSearchResults.length === 0 &&
-            !debouncedSearchQuery && (
-              <>
-                {absSearchResults.length === 0 && absRecentBooks.length > 0 && (
-                  <AbsBookShelf
-                    searchResults={absRecentBooks}
-                    onSubmitIssue={handleNewIssue}
-                    title="Recently Added"
-                  />
-                )}
+
+          {externalSearchResults.length > 0 && (
+            <UniversalBookShelf
+              shelfType="EXTERNAL"
+              title="Search Results"
+              dataSource={externalSearchResults}
+              onRequestBook={handleRequest}
+              users={users}
+            />
+          )}
+
+          {!hasResults && !debouncedSearchQuery && (
+            <>
+              {absRecentBooks.length > 0 ? (
+                <UniversalBookShelf
+                  shelfType="ABS"
+                  title="Recently Added"
+                  dataSource={absRecentBooks}
+                  onSubmitIssue={handleNewIssue}
+                  absBaseUrl={absBaseUrl}
+                />
+              ) : (
                 <div className="flex flex-col items-center justify-center text-center">
                   <p className="text-gray-400">Seek for a new book!</p>
                 </div>
-              </>
-            )}
-          {!hasResults &&
-            absSearchResults.length === 0 &&
-            !!debouncedSearchQuery && (
-              <div className="flex flex-col items-center justify-center text-center">
-                <p className="text-xl font-semibold text-gray-500">
-                  Oops, just empty shelves here.
-                </p>
-                <p className="text-gray-400">
-                  Try to broaden your query if you are having trouble fetching
-                  any results.
-                </p>
-              </div>
-            )}
+              )}
+            </>
+          )}
+          {!hasResults && !!debouncedSearchQuery && !isSearching && (
+            <div className="flex flex-col items-center justify-center text-center">
+              <p className="text-xl font-semibold text-gray-500">
+                Oops, just empty shelves here.
+              </p>
+              <p className="text-gray-400">
+                Try to broaden your query if you are having trouble fetching any
+                results.
+              </p>
+            </div>
+          )}
         </main>
       </div>
     </div>
