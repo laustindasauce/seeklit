@@ -2,10 +2,16 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { getEnvVal } from "./utils";
 
-const getApiClient = (baseUrl: string) => {
-  baseUrl = getEnvVal(process.env.SEEKLIT_ABS_URL, baseUrl);
+const getApiClient = (baseUrl?: string) => {
+  // In production (Docker), use relative URLs to go through nginx proxy
+  // In development, use the provided baseUrl or fallback to localhost
+  const apiBaseUrl =
+    process.env.NODE_ENV === "production"
+      ? "/api"
+      : baseUrl || getEnvVal(process.env.VITE_API_URL, "http://localhost:8416");
+
   return axios.create({
-    baseURL: baseUrl,
+    baseURL: apiBaseUrl,
     timeout: 5000,
     headers: {
       "Content-Type": "application/json",
@@ -47,7 +53,7 @@ const logout = async (baseUrl: string) => {
 const getUser = async (baseUrl: string, token: string) => {
   try {
     const apiClient: AxiosInstance = getApiClient(baseUrl);
-    const response: AxiosResponse<User> = await apiClient.get(`/api/me`, {
+    const response: AxiosResponse<User> = await apiClient.get(`/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -63,7 +69,7 @@ const getUsers = async (baseUrl: string, token: string) => {
   try {
     const apiClient: AxiosInstance = getApiClient(baseUrl);
     const response: AxiosResponse<UsersResponse> = await apiClient.get(
-      `/api/users`,
+      `/users`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

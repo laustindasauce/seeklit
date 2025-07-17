@@ -3,16 +3,28 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { getEnvVal } from "./utils";
 
 const getApiClient = (baseUrl?: string) => {
-  if (!baseUrl) {
-    baseUrl = getEnvVal(import.meta.env.VITE_API_URL, window?.location.origin);
+  // In production (Docker), use relative URLs to go through nginx proxy
+  // In development, use the provided baseUrl or fallback to localhost
+  let apiBaseUrl: string;
+
+  if (process.env.NODE_ENV === "production") {
+    apiBaseUrl = "/api/v1";
   } else {
-    baseUrl = getEnvVal(import.meta.env.VITE_API_URL, baseUrl);
+    if (!baseUrl) {
+      baseUrl = getEnvVal(
+        import.meta.env.VITE_API_URL,
+        window?.location.origin
+      );
+    } else {
+      baseUrl = getEnvVal(import.meta.env.VITE_API_URL, baseUrl);
+    }
+    apiBaseUrl = baseUrl + "/api/v1";
   }
 
-  console.log(baseUrl);
+  console.log("API Base URL:", apiBaseUrl);
 
   return axios.create({
-    baseURL: baseUrl + "/api/v1",
+    baseURL: apiBaseUrl,
     timeout: 30000,
     headers: {
       "Content-Type": "application/json",

@@ -1,27 +1,15 @@
 name: Seeklit
 
 services:
-  seeklit-client:
-    image: ghcr.io/laustindasauce/seeklit-client:latest
-    container_name: seeklit-client
+  seeklit:
+    image: ghcr.io/laustindasauce/seeklit:latest
+    container_name: seeklit
     ports:
-      - "3014:3000"
-    restart: always
-    environment:
-      SEEKLIT_API_URL: 
-      SEEKLIT_ABS_URL: http://audiobookshelf:80
-      SEEKLIT_ADMIN_EMAIL:
-    depends_on:
-      - seeklit-server
-
-  seeklit-server:
-    image: ghcr.io/laustindasauce/seeklit-server:latest
-    container_name: seeklit-server
-    ports:
-      - "8416:8416"
+      - "3014:80"
     restart: always
     environment:
       SEEKLIT_CONF_FILE: /config/seeklit.conf
+      SEEKLIT_ABS_URL: http://audiobookshelf:80
     volumes:
       - /mnt/volume/config/seeklit:/config
       - /mnt/volume/data/seeklit:/data # SQLite DB location
