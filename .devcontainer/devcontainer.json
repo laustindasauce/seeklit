@@ -1,35 +1,43 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
 {
   "name": "Seeklit",
-  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "image": "mcr.microsoft.com/devcontainers/go:1.23-bookworm",
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {}
+  "build": {
+    "dockerfile": "Dockerfile"
   },
+  "workspaceFolder": "/workspaces/seeklit",
 
-  // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {},
+  "forwardPorts": [80, 3000, 8416],
 
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [3000, 8080, 8416],
+  "postCreateCommand": "cd client && pnpm install && echo 'VITE_API_URL=\"http://localhost:8416\"' > .env && echo 'SEEKLIT_ABS_URL=\"\"' >> .env && echo 'VITE_ABS_URL=\"\"' >> .env && echo 'VITE_ADMIN_EMAIL=\"dev@gmail.com\"' >> .env && cd ../server && GOPROXY=direct go mod tidy && cp -n default.conf dev.conf && echo 'SEEKLIT_CONF_FILE=\"dev.conf\"' > .env && echo 'SEEKLIT_VERSION=\"develop\"' >> .env",
 
-  // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "make",
-
-  // Configure tool-specific properties.
   "customizations": {
     "vscode": {
       "extensions": [
-        // IDs of extensions to install on creation
         "ms-vscode.go",
         "esbenp.prettier-vscode",
         "streetsidesoftware.code-spell-checker",
-        "cardinal90.multi-cursor-case-preserve"
-      ]
+        "cardinal90.multi-cursor-case-preserve",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
     }
-  }
-  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "root"
+  },
+
+  "portsAttributes": {
+    "80": {
+      "label": "Nginx (Combined App)",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "Client Dev Server",
+      "onAutoForward": "notify"
+    },
+    "8416": {
+      "label": "Go API Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "remoteUser": "vscode"
 }

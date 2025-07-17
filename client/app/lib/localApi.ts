@@ -3,25 +3,8 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { getEnvVal } from "./utils";
 
 const getApiClient = (baseUrl?: string) => {
-  // In production (Docker), use relative URLs to go through nginx proxy
-  // In development, use the provided baseUrl or fallback to localhost
-  let apiBaseUrl: string;
-
-  if (process.env.NODE_ENV === "production") {
-    apiBaseUrl = "/api/v1";
-  } else {
-    if (!baseUrl) {
-      baseUrl = getEnvVal(
-        import.meta.env.VITE_API_URL,
-        window?.location.origin
-      );
-    } else {
-      baseUrl = getEnvVal(import.meta.env.VITE_API_URL, baseUrl);
-    }
-    apiBaseUrl = baseUrl + "/api/v1";
-  }
-
-  console.log("API Base URL:", apiBaseUrl);
+  // Always use relative URLs since nginx handles routing in both dev and prod
+  const apiBaseUrl = "/api/v1";
 
   return axios.create({
     baseURL: apiBaseUrl,
@@ -186,9 +169,9 @@ const createNewRequest = async (token: string, req: NewBookRequest) => {
 };
 
 // Function to get requests
-const getRequests = async (baseUrl: string, token: string) => {
+const getRequests = async (token: string) => {
   try {
-    const apiClient: AxiosInstance = getApiClient(baseUrl);
+    const apiClient: AxiosInstance = getApiClient();
     const response: AxiosResponse<BookRequest[]> = await apiClient.get(
       "/requests/",
       {
@@ -268,9 +251,9 @@ const createNewIssue = async (token: string, req: NewIssue) => {
 };
 
 // Function to get issues
-const getIssues = async (baseUrl: string, token: string) => {
+const getIssues = async (token: string) => {
   try {
-    const apiClient: AxiosInstance = getApiClient(baseUrl);
+    const apiClient: AxiosInstance = getApiClient();
     const response: AxiosResponse<Issue[]> = await apiClient.get("/issues/", {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -323,9 +306,9 @@ const deleteIssue = async (token: string, reqId: number) => {
 };
 
 // Function to retrieve books recently added
-const getRecentBooks = async (baseUrl: string, token: string) => {
+const getRecentBooks = async (token: string) => {
   try {
-    const apiClient: AxiosInstance = getApiClient(baseUrl);
+    const apiClient: AxiosInstance = getApiClient();
     const response: AxiosResponse<LocalSearchResponse> = await apiClient.get(
       "/search/personalized",
       {

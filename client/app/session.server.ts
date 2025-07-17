@@ -49,9 +49,7 @@ export async function getUser(request: Request) {
   const userToken = await getUserToken(request);
   if (userToken === undefined) return null;
 
-  const clientOrigin = request.headers.get("origin") || "";
-
-  const user = await api.getUser(clientOrigin, userToken);
+  const user = await api.getUser(userToken);
   if (user) return user;
 
   throw await logout(request);

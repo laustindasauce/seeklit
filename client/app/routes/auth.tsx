@@ -32,7 +32,7 @@ export const action: ActionFunction = async ({
   const clientOrigin = request.headers.get("origin") || "";
 
   try {
-    const data = await api.login(clientOrigin, username, password);
+    const data = await api.login(username, password);
     if (!data.user.token) {
       return Response.json(
         { error: "Login failed. Please check your credentials." },

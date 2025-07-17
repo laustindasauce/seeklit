@@ -2,6 +2,13 @@ FROM node:20-bullseye-slim AS client-build
 
 RUN npm install -g pnpm
 
+# Set environment variables for the client build
+ARG VERSION
+ENV VITE_SEEKLIT_VERSION=${VERSION}
+ENV VITE_ABS_URL="BAKED_SEEKLIT_ABS_URL"
+ENV VITE_ADMIN_EMAIL="BAKED_SEEKLIT_ADMIN_EMAIL"
+ENV NODE_ENV=production
+
 # Build the client
 WORKDIR /app/client
 COPY client/package.json client/pnpm-lock.yaml ./

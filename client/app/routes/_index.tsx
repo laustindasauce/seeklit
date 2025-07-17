@@ -118,12 +118,9 @@ export const loader: LoaderFunction = async ({
   const absBaseUrl = getEnvVal(process.env.SEEKLIT_ABS_URL, origin);
 
   try {
-    const usersRes = await api.getUsers(origin, userToken);
-    // In production, we use relative paths, so no need for API base URL
-    const absPersonalizedResults = await localApi.getRecentBooks(
-      origin,
-      userToken
-    );
+    const usersRes = await api.getUsers(userToken);
+    // Using relative paths for all API calls
+    const absPersonalizedResults = await localApi.getRecentBooks(userToken);
     const recentBooks = absPersonalizedResults.abs_results;
 
     return Response.json({
