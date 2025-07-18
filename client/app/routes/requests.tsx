@@ -172,7 +172,11 @@ const BookRequests = () => {
   const handleUpdate = async () => {
     if (!user || !selectedRequest) return;
     try {
-      await localApi.updateRequest(user.token, selectedRequest.id, formVals);
+      await localApi.updateRequest(
+        user.accessToken,
+        selectedRequest.id,
+        formVals
+      );
 
       toast({
         title: "Request Updated",
@@ -201,7 +205,7 @@ const BookRequests = () => {
     }
 
     try {
-      await localApi.deleteRequest(user.token, selectedRequest.id);
+      await localApi.deleteRequest(user.accessToken, selectedRequest.id);
 
       toast({
         title: "Request Deleted",

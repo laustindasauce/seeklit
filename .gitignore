@@ -40,3 +40,5 @@ __pycache__/
 run_dev.sh
 
 data/
+
+nginx.dev.conf

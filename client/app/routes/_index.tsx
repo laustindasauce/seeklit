@@ -115,7 +115,7 @@ export const loader: LoaderFunction = async ({
     return await logout(request);
   }
 
-  const absBaseUrl = getEnvVal(process.env.SEEKLIT_ABS_URL, origin);
+  const absBaseUrl = getEnvVal(process.env.SEEKLIT_ABS_EXTERNAL_URL, origin);
 
   try {
     const usersRes = await api.getUsers(origin, userToken);
@@ -232,7 +232,7 @@ export default function IndexHandler() {
   useEffect(() => {
     if (!debouncedSearchQuery || !serverSettings || !user) return;
     handleSearch(
-      user.token,
+      user.accessToken,
       serverSettings.metadata_provider,
       debouncedSearchQuery
     );
@@ -260,7 +260,7 @@ export default function IndexHandler() {
     if (event.key === "Enter" && searchQuery) {
       if (!user || !serverSettings) return;
       handleSearch(
-        user.token,
+        user.accessToken,
         serverSettings.metadata_provider,
         debouncedSearchQuery
       );
@@ -279,7 +279,7 @@ export default function IndexHandler() {
       return;
     }
     try {
-      await localApi.createNewRequest(user.token, req);
+      await localApi.createNewRequest(user.accessToken, req);
 
       toast({
         title: "New Book Request",
@@ -301,7 +301,7 @@ export default function IndexHandler() {
       issue.creator_id = user.id;
       issue.creator_username = user.username;
 
-      await localApi.createNewIssue(user.token, issue);
+      await localApi.createNewIssue(user.accessToken, issue);
 
       toast({
         title: "New Issue",

@@ -110,7 +110,7 @@ export default function SettingsPage() {
     };
 
     if (user) {
-      getServerConfig(user.token);
+      getServerConfig(user.accessToken);
     }
   }, [user]);
 
@@ -133,7 +133,7 @@ export default function SettingsPage() {
     try {
       key = `${section}::${key}`;
 
-      await localApi.updateServerConfig(user.token, { key, value });
+      await localApi.updateServerConfig(user.accessToken, { key, value });
 
       toast({
         title: `Config (${key}) updated`,

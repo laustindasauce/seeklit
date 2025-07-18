@@ -4,7 +4,12 @@ import { getEnvVal } from "./utils";
 
 const getApiClient = (baseUrl?: string) => {
   if (!baseUrl) {
-    baseUrl = getEnvVal(import.meta.env.VITE_API_URL, window?.location.origin);
+    // For server-side rendering, use SEEKLIT_PROXY_URL, otherwise use window.location.origin
+    const fallback =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.SEEKLIT_PROXY_URL;
+    baseUrl = getEnvVal(import.meta.env.VITE_API_URL, fallback);
   } else {
     baseUrl = getEnvVal(import.meta.env.VITE_API_URL, baseUrl);
   }

@@ -1,27 +1,61 @@
 name: Seeklit
 
+networks:
+  proxynet:
+    name: audiobookshelf_default
+    external: true
+
 services:
-  seeklit-client:
-    image: ghcr.io/laustindasauce/seeklit-client:latest
-    container_name: seeklit-client
-    ports:
-      - "3014:3000"
+  seeklit-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    image: seeklit-server:latest
+    container_name: seeklit-server
     restart: always
+    networks:
+      - proxynet
     environment:
-      SEEKLIT_API_URL: 
+      SEEKLIT_CONF_FILE: /config/seeklit.conf
       SEEKLIT_ABS_URL: http://audiobookshelf:80
-      SEEKLIT_ADMIN_EMAIL:
+      SEEKLIT_ABS_EXTERNAL_URL: http://localhost:13378 # Change this to your external ABS URL
+      SEEKLIT_ADMIN_EMAIL: admin@example.com # Change this to your admin email
+      PUID: 1000
+      PGID: 1000
+      TZ: America/New_York
+    volumes:
+      - ./data:/config
+      - ./data:/data # SQLite DB location
+
+  seeklit-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: seeklit-client:latest
+    container_name: seeklit-client
+    restart: always
+    networks:
+      - proxynet
+    environment:
+      SEEKLIT_ABS_URL: http://audiobookshelf:80
+      SEEKLIT_ABS_EXTERNAL_URL: http://localhost:13378 # Change this to your external ABS URL
+      SEEKLIT_ADMIN_EMAIL: admin@example.com # Change this to your admin email
+      SEEKLIT_PROXY_URL: http://seeklit-nginx
+      PUID: 1000
+      PGID: 1000
+      TZ: America/New_York
     depends_on:
       - seeklit-server
 
-  seeklit-server:
-    image: ghcr.io/laustindasauce/seeklit-server:latest
-    container_name: seeklit-server
+  nginx:
+    image: seeklit-client:latest
+    container_name: seeklit-nginx
+    command: nginx
     ports:
-      - "8416:8416"
+      - "80:80"
     restart: always
-    environment:
-      SEEKLIT_CONF_FILE: /config/seeklit.conf
-    volumes:
-      - /mnt/volume/config/seeklit:/config
-      - /mnt/volume/data/seeklit:/data # SQLite DB location
+    networks:
+      - proxynet
+    depends_on:
+      - seeklit-server
+      - seeklit-client

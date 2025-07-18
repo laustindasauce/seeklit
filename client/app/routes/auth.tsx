@@ -32,17 +32,18 @@ export const action: ActionFunction = async ({
   const clientOrigin = request.headers.get("origin") || "";
 
   try {
+    console.log("Attempting login with username:", username);
     const data = await api.login(clientOrigin, username, password);
-    if (!data.user.token) {
+    if (!data.user.accessToken) {
       return Response.json(
         { error: "Login failed. Please check your credentials." },
         { status: 401 }
       );
     }
-    console.log(`Creating client user session with token: ${data.user.token}`);
-    return createUserSession({ request, userToken: data.user.token });
+    // console.log(`Creating client user session with token: ${data.user.accessToken}`);
+    return createUserSession({ request, userToken: data.user.accessToken });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     return Response.json(
       { error: "Login failed. Please check your credentials." },
       { status: 401 }

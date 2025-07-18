@@ -29,7 +29,9 @@ type User = {
   id: string;
   username: string;
   type: string;
-  token: string;
+  token: string; // Deprecated - use accessToken instead
+  accessToken: string; // New JWT token
+  refreshToken?: string; // Optional - only returned with x-return-tokens header
   mediaProgress: MediaProgress[];
   seriesHideFromContinueListening: string[];
   bookmarks: string[];

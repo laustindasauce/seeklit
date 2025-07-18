@@ -157,7 +157,7 @@ const Issues = () => {
   const handleUpdate = async () => {
     if (!user || !selectedIssue) return;
     try {
-      await localApi.updateIssue(user.token, selectedIssue.id, formVals);
+      await localApi.updateIssue(user.accessToken, selectedIssue.id, formVals);
 
       toast({
         title: "Issue Updated",
@@ -186,7 +186,7 @@ const Issues = () => {
     }
 
     try {
-      await localApi.deleteIssue(user.token, selectedIssue.id);
+      await localApi.deleteIssue(user.accessToken, selectedIssue.id);
 
       toast({
         title: "Issue Deleted",
@@ -205,7 +205,10 @@ const Issues = () => {
   const clientOrigin =
     typeof window !== "undefined" ? window.location.origin : "";
 
-  const absBaseUrl = getEnvVal(import.meta.env.VITE_ABS_URL, clientOrigin);
+  const absBaseUrl = getEnvVal(
+    import.meta.env.VITE_ABS_EXTERNAL_URL,
+    clientOrigin
+  );
 
   return (
     <div className="flex h-screen">
