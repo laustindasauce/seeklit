@@ -39,7 +39,7 @@ async function getSession(request: Request) {
 
 export async function getUserToken(
   request: Request
-): Promise<User["token"] | undefined> {
+): Promise<User["accessToken"] | undefined> {
   const session = await getSession(request);
   const userToken = session.get(USER_SESSION_KEY);
   return userToken;
@@ -52,7 +52,13 @@ export async function getUser(request: Request) {
   const clientOrigin = request.headers.get("origin") || "";
 
   const user = await api.getUser(clientOrigin, userToken);
-  if (user) return user;
+  if (user) {
+    // Ensure accessToken is available - fallback to token field if accessToken is missing
+    if (!user.accessToken && user.token) {
+      user.accessToken = user.token;
+    }
+    return user;
+  }
 
   throw await logout(request);
 }
