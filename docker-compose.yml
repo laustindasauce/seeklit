@@ -1,16 +1,64 @@
 name: Seeklit
 
+networks:
+  proxynet:
+    name: audiobookshelf_default
+    external: true
+
 services:
-  seeklit:
-    image: ghcr.io/laustindasauce/seeklit:latest
-    container_name: seeklit
-    ports:
-      - "3014:80"
+  seeklit-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    image: seeklit-server:latest
+    container_name: seeklit-server
     restart: always
+    networks:
+      - proxynet
     environment:
       SEEKLIT_CONF_FILE: /config/seeklit.conf
       SEEKLIT_ABS_URL: http://audiobookshelf:80
+      SEEKLIT_ABS_EXTERNAL_URL: http://localhost:13378 # Change this to your external ABS URL
       SEEKLIT_ADMIN_EMAIL: admin@example.com # Change this to your admin email
+      PUID: 1000
+      PGID: 1000
+      TZ: America/New_York
     volumes:
-      - /mnt/volume/config/seeklit:/config
-      - /mnt/volume/data/seeklit:/data # SQLite DB location
+      - ./data:/config
+      - ./data:/data # SQLite DB location
+    ports:
+      - 8416:8416
+
+  seeklit-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: seeklit-client:latest
+    container_name: seeklit-client
+    restart: always
+    networks:
+      - proxynet
+    environment:
+      SEEKLIT_ABS_URL: http://audiobookshelf:80
+      SEEKLIT_ABS_EXTERNAL_URL: http://localhost:13378 # Change this to your external ABS URL
+      SEEKLIT_ADMIN_EMAIL: admin@example.com # Change this to your admin email
+      SEEKLIT_PROXY_URL: http://seeklit-nginx
+      PUID: 1000
+      PGID: 1000
+      TZ: America/New_York
+    depends_on:
+      - seeklit-server
+
+  nginx:
+    image: nginx:alpine
+    container_name: seeklit-nginx
+    ports:
+      - "80:80"
+    restart: always
+    networks:
+      - proxynet
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - seeklit-server
+      - seeklit-client

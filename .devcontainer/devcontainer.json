@@ -3,11 +3,12 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "runArgs": ["--network=audiobookshelf_default"],
   "workspaceFolder": "/workspaces/seeklit",
 
-  "forwardPorts": [80, 3000, 8416],
+  "forwardPorts": [80, 3000, 3013, 8416],
 
-  "postCreateCommand": "cd client && pnpm install && echo 'VITE_API_URL=\"http://localhost:8416\"' > .env && echo 'SEEKLIT_ABS_URL=\"\"' >> .env && echo 'VITE_ABS_URL=\"\"' >> .env && echo 'VITE_ADMIN_EMAIL=\"dev@gmail.com\"' >> .env && cd ../server && GOPROXY=direct go mod tidy && cp -n default.conf dev.conf && echo 'SEEKLIT_CONF_FILE=\"dev.conf\"' > .env && echo 'SEEKLIT_VERSION=\"develop\"' >> .env",
+  "postCreateCommand": "make dev-setup",
 
   "customizations": {
     "vscode": {

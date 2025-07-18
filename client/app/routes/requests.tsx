@@ -75,7 +75,7 @@ export const loader: LoaderFunction = async ({
   } catch (error) {
     console.error("Invalid URL in referer:", clientOrigin);
   }
-  const requests = await localApi.getRequests(userToken);
+  const requests = await localApi.getRequests(origin, userToken);
   const data: LoaderData = { userToken, requests };
   return Response.json(data);
 };

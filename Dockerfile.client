@@ -1,39 +1,75 @@
-FROM node:20-bullseye-slim AS base
+FROM node:20-alpine AS client-build
 
+# Install pnpm
 RUN npm install -g pnpm
 
+# Set working directory
+WORKDIR /app/client
+
+# Copy package files first for better caching
+COPY client/package.json client/pnpm-lock.yaml ./
+
+# Install dependencies (this layer will be cached if package files don't change)
+RUN pnpm install --frozen-lockfile
+
+# Set environment variables for the client build
 ARG VERSION
 ENV VITE_SEEKLIT_VERSION=${VERSION}
-ENV VITE_API_URL="BAKED_SEEKLIT_API_URL"
 ENV VITE_ABS_URL="BAKED_SEEKLIT_ABS_URL"
+ENV VITE_ABS_EXTERNAL_URL="BAKED_SEEKLIT_ABS_EXTERNAL_URL"
 ENV VITE_ADMIN_EMAIL="BAKED_SEEKLIT_ADMIN_EMAIL"
 ENV NODE_ENV=production
 
-RUN mkdir -p /data
-
-# Dependencies for Node.js (client) with dev dependencies for build
-FROM base AS client-deps
-WORKDIR /app/client
-COPY client/package.json client/pnpm-lock.yaml ./
-RUN pnpm install --prod
-
-# Build the Node.js client
-FROM client-deps AS client-build
-WORKDIR /app/client
+# Copy source code (separate layer for better caching)
 COPY client/ ./
+
+# Build the application
 RUN pnpm run build
 
-# Combine everything into a minimal production image
-FROM base AS final
-WORKDIR /app
+# Final production image
+FROM node:20-alpine AS final
 
-# Copy Node.js production build and dependencies
-COPY --from=client-build /app/client/build /app/client/build
-COPY --from=client-build /app/client/public /app/client/public
-COPY --from=client-deps /app/client/package.json /app/client/package.json
-COPY --from=client-deps /app/client/node_modules /app/client/node_modules
+# Install su-exec and shadow for user management
+RUN apk add --no-cache su-exec shadow
 
-# Copy the entrypoint script
+# Install pnpm
+RUN npm install -g pnpm
+
+# Set environment variables
+ARG VERSION
+ENV SEEKLIT_VERSION=${VERSION}
+ENV TZ=America/New_York
+ENV PUID=1000
+ENV PGID=1000
+ENV NODE_ENV=production
+
+# Set timezone
+RUN apk add --no-cache tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone
+
+# Use existing node user (UID 1000) and rename to seeklit
+RUN usermod -l seeklit -d /home/seeklit node \
+    && groupmod -n seeklit node \
+    && mkdir -p /home/seeklit \
+    && chown seeklit:seeklit /home/seeklit
+
+# Create necessary directories with proper ownership
+RUN mkdir -p /data /config /app \
+    && chown -R seeklit:seeklit /data /config /app
+
+# Set working directory
+WORKDIR /app/client
+
+# Copy the client build and dependencies from build stage
+COPY --from=client-build /app/client/build ./build
+COPY --from=client-build /app/client/node_modules ./node_modules
+COPY --from=client-build /app/client/package.json ./package.json
+
+# Ensure proper ownership
+RUN chown -R seeklit:seeklit /app
+
+# Copy entrypoint script
 COPY entrypoint-client.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint-client.sh
 

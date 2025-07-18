@@ -2,10 +2,10 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { getEnvVal } from "./utils";
 
-const getApiClient = (baseUrl?: string) => {
-  // Always use relative URLs since nginx handles routing in both dev and prod
+const getApiClient = (baseUrl: string) => {
+  baseUrl = getEnvVal(process.env.SEEKLIT_ABS_URL, baseUrl);
   return axios.create({
-    baseURL: "/api",
+    baseURL: baseUrl,
     timeout: 5000,
     headers: {
       "Content-Type": "application/json",
@@ -14,9 +14,9 @@ const getApiClient = (baseUrl?: string) => {
 };
 
 // Function to handle login
-const login = async (username: string, password: string) => {
+const login = async (baseUrl: string, username: string, password: string) => {
   try {
-    const apiClient: AxiosInstance = getApiClient();
+    const apiClient: AxiosInstance = getApiClient(baseUrl);
     const response: AxiosResponse<LoginResponse> = await apiClient.post(
       "/login",
       {
@@ -32,9 +32,9 @@ const login = async (username: string, password: string) => {
 };
 
 // Function to handle logout
-const logout = async () => {
+const logout = async (baseUrl: string) => {
   try {
-    const apiClient: AxiosInstance = getApiClient();
+    const apiClient: AxiosInstance = getApiClient(baseUrl);
     const response = await apiClient.post("/logout");
     return response.data;
   } catch (error) {
@@ -44,10 +44,10 @@ const logout = async () => {
 };
 
 // Function to get user information
-const getUser = async (token: string) => {
+const getUser = async (baseUrl: string, token: string) => {
   try {
-    const apiClient: AxiosInstance = getApiClient();
-    const response: AxiosResponse<User> = await apiClient.get(`/me`, {
+    const apiClient: AxiosInstance = getApiClient(baseUrl);
+    const response: AxiosResponse<User> = await apiClient.get(`/api/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -59,11 +59,11 @@ const getUser = async (token: string) => {
   }
 };
 
-const getUsers = async (token: string) => {
+const getUsers = async (baseUrl: string, token: string) => {
   try {
-    const apiClient: AxiosInstance = getApiClient();
+    const apiClient: AxiosInstance = getApiClient(baseUrl);
     const response: AxiosResponse<UsersResponse> = await apiClient.get(
-      `/users`,
+      `/api/users`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

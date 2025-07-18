@@ -66,7 +66,7 @@ export const loader: LoaderFunction = async ({
   } catch (error) {
     console.error("Invalid URL in referer:", clientOrigin);
   }
-  const issues = await localApi.getIssues(userToken);
+  const issues = await localApi.getIssues(origin, userToken);
   const data: LoaderData = { userToken, issues };
   return Response.json(data);
 };
@@ -205,7 +205,10 @@ const Issues = () => {
   const clientOrigin =
     typeof window !== "undefined" ? window.location.origin : "";
 
-  const absBaseUrl = getEnvVal(import.meta.env.VITE_ABS_URL, clientOrigin);
+  const absBaseUrl = getEnvVal(
+    import.meta.env.VITE_ABS_EXTERNAL_URL,
+    clientOrigin
+  );
 
   return (
     <div className="flex h-screen">
