@@ -1,6 +1,16 @@
 #!/bin/sh
 set -e
 
+# If the first argument is 'nginx', start the Nginx server.
+if [ "$1" = "nginx" ]; then
+    echo "Starting Nginx server..."
+    # The 'daemon off;' directive keeps Nginx in the foreground,
+    # which is standard practice for containers.
+    exec nginx -g 'daemon off;'
+fi
+
+# The original script to start the Remix application continues below.
+
 echo "Starting Seeklit client container..."
 
 # Handle PUID and PGID
