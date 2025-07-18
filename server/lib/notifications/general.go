@@ -17,6 +17,16 @@ func SendNotification(title, body string) {
 	}
 }
 
+// SendUserNotificationEmail sends email notification to a specific user
+func SendUserNotificationEmail(userEmail, title, body string) {
+	if config.DefaultBool("smtp::enabled", false) {
+		err := sendEmailNotification(userEmail, title, body)
+		if err != nil {
+			logs.Warn("Unable to send email notification: %v\n", err)
+		}
+	}
+}
+
 func SendErrorNotification(location, info string, err error) {
 	title := "⛔☢️⛔ Seeklit application caught an error!"
 	body := fmt.Sprintf("Location: %s\nInfo: %s\nError: %v", location, info, err)
