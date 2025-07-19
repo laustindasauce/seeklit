@@ -25,6 +25,7 @@ install-packages:
 
 install-client:
 	@echo "Installing pnpm packages in the client folder..."
+	pnpm config set store-dir /home/vscode/.local/share/pnpm/store
 	cd client && pnpm install
 	@echo 'SEEKLIT_PROXY_URL="http://localhost"' > client/.env
 	@echo 'SEEKLIT_ABS_URL="http://audiobookshelf:80"' >> client/.env
