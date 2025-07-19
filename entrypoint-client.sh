@@ -4,8 +4,16 @@ set -e
 # If the first argument is 'nginx', start the Nginx server.
 if [ "$1" = "nginx" ]; then
     echo "Starting Nginx server..."
-    # The 'daemon off;' directive keeps Nginx in the foreground,
-    # which is standard practice for containers.
+
+    export NGINX_CLIENT_URL=${SEEKLIT_PROXY_CLIENT_URL:-http://seeklit-client:3000}
+    export NGINX_SERVER_URL=${SEEKLIT_PROXY_SERVER_URL:-http://seeklit-server:8416}
+
+    echo "Client proxy_pass URL: $NGINX_CLIENT_URL"
+    echo "Server proxy_pass URL: $NGINX_SERVER_URL"
+
+    envsubst '${NGINX_CLIENT_URL},${NGINX_SERVER_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+
+    # The 'daemon off;' directive keeps Nginx in the foreground.
     exec nginx -g 'daemon off;'
 fi
 
