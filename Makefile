@@ -33,6 +33,7 @@ install-client:
 	@echo 'VITE_ABS_URL="http://audiobookshelf:80"' >> client/.env
 	@echo 'VITE_ABS_EXTERNAL_URL="http://localhost:13378"' >> client/.env
 	@echo 'VITE_ADMIN_EMAIL="dev@gmail.com"' >> client/.env
+	@echo 'VITE_SEEKLIT_VERSION="dev"' >> client/.env
 
 install-server:
 	@echo "Installing all server dependencies"

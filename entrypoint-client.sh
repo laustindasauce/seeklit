@@ -44,6 +44,11 @@ chown -R seeklit:seeklit /data /config /app /home/seeklit
 mkdir -p /home/seeklit/.local/share/pnpm /home/seeklit/.config/pnpm /home/seeklit/.cache/pnpm
 chown -R seeklit:seeklit /home/seeklit/.local /home/seeklit/.config /home/seeklit/.cache
 
+# Set default values for environment variables
+SEEKLIT_ABS_URL=${SEEKLIT_ABS_URL:-http://audiobookshelf:80}
+SEEKLIT_ABS_EXTERNAL_URL=${SEEKLIT_ABS_EXTERNAL_URL:-http://localhost:13378}
+SEEKLIT_PROXY_URL=${SEEKLIT_PROXY_URL:-http://seeklit-nginx:80}
+
 # Handle timezone configuration
 TZ=${TZ:-America/New_York}
 echo "Setting timezone to $TZ"

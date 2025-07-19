@@ -23,6 +23,10 @@ fi
 # Ensure proper ownership of directories
 chown -R seeklit:seeklit /data /config /app /home/seeklit
 
+# Set default values for environment variables
+SEEKLIT_ABS_URL=${SEEKLIT_ABS_URL:-http://audiobookshelf:80}
+SEEKLIT_ABS_EXTERNAL_URL=${SEEKLIT_ABS_EXTERNAL_URL:-http://localhost:13378}
+
 # Handle timezone configuration
 TZ=${TZ:-America/New_York}
 echo "Setting timezone to $TZ"
