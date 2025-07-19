@@ -1,4 +1,3 @@
-import { json } from "@remix-run/node";
 import {
   Links,
   Meta,
@@ -35,7 +34,7 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   const user = await getUser(request);
   // console.log(user)
-  return json({
+  return Response.json({
     user,
   });
 };

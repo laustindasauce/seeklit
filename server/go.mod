@@ -4,13 +4,13 @@ go 1.23.0
 
 toolchain go1.23.7
 
-require github.com/beego/beego/v2 v2.3.6
+require github.com/beego/beego/v2 v2.3.8
 
 require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/joho/godotenv v1.5.1
-	github.com/smartystreets/goconvey v1.6.4
-	gorm.io/gorm v1.25.12
+	github.com/smartystreets/goconvey v1.8.1
+	gorm.io/gorm v1.30.0
 )
 
 require (
@@ -19,7 +19,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
+	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -36,7 +36,7 @@ require (
 	github.com/prometheus/procfs v0.16.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/shiena/ansicolor v0.0.0-20230509054315-a9deabde6e02 // indirect
-	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
+	github.com/smarty/assertions v1.15.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/net v0.38.0 // indirect
