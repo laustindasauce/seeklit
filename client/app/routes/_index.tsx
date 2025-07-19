@@ -119,7 +119,7 @@ export const loader: LoaderFunction = async ({
 
   try {
     const usersRes = await api.getUsers(origin, userToken);
-    const apiBaseUrl = getEnvVal(process.env.SEEKLIT_API_URL, origin);
+    const apiBaseUrl = getEnvVal(process.env.SEEKLIT_PROXY_URL, origin);
     const absPersonalizedResults = await localApi.getRecentBooks(
       apiBaseUrl,
       userToken

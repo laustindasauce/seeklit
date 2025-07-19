@@ -7,6 +7,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     nginx \
     supervisor \
     sqlite3 \
+    gettext \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm

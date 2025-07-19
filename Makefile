@@ -2,6 +2,10 @@
 
 all: setup-data-dir setup-conf-dir install-packages install-client install-server
 
+# Define default development URLs for Nginx
+SEEKLIT_PROXY_CLIENT_URL ?= http://localhost:3000
+SEEKLIT_PROXY_SERVER_URL ?= http://localhost:8416
+
 # Setup directories
 setup-data-dir:
 	@echo "Creating data directory and downloads directory..."
@@ -47,8 +51,10 @@ create-dev-script:
 	@echo "run_dev.sh script created successfully."
 
 copy-nginx-config:
-	@echo "Creating development nginx configuration..."
-	@sed 's/seeklit-client:3000/localhost:3000/g; s/seeklit-server:8416/localhost:8416/g' nginx.conf > nginx.dev.conf
+	@echo "Creating development nginx configuration from template..."
+	@SEEKLIT_PROXY_CLIENT_URL="$(SEEKLIT_PROXY_CLIENT_URL)" \
+	 SEEKLIT_PROXY_SERVER_URL="$(SEEKLIT_PROXY_SERVER_URL)" \
+	 envsubst '$$SEEKLIT_PROXY_CLIENT_URL,$$SEEKLIT_PROXY_SERVER_URL' < nginx.conf.template > nginx.dev.conf
 	@echo "Copying development nginx configuration..."
 	sudo cp nginx.dev.conf /etc/nginx/nginx.conf
 	@echo "Development nginx configuration copied successfully."

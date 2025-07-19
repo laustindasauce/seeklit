@@ -9,9 +9,9 @@ const getApiClient = (baseUrl?: string) => {
       typeof window !== "undefined"
         ? window.location.origin
         : process.env.SEEKLIT_PROXY_URL;
-    baseUrl = getEnvVal(import.meta.env.VITE_API_URL, fallback);
+    baseUrl = getEnvVal(import.meta.env.VITE_PROXY_URL, String(fallback));
   } else {
-    baseUrl = getEnvVal(import.meta.env.VITE_API_URL, baseUrl);
+    baseUrl = getEnvVal(import.meta.env.VITE_PROXY_URL, baseUrl);
   }
 
   console.log(baseUrl);
