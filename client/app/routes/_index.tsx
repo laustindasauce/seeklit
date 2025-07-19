@@ -9,7 +9,7 @@ import { redirect, useLoaderData } from "@remix-run/react";
 import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { getUserToken, logout } from "@/session.server";
 import { useDebounce, useOptionalUser } from "@/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import UserAvatar from "@/components/UserAvatar";
 import { localApi } from "@/lib/localApi";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +23,6 @@ import UniversalBookShelf, {
 type LoaderData = {
   userToken: string;
   users: User[];
-  recentBooks: BookItem[];
   absBaseUrl: string;
 };
 
@@ -119,34 +118,29 @@ export const loader: LoaderFunction = async ({
 
   try {
     const usersRes = await api.getUsers(origin, userToken);
-    const apiBaseUrl = getEnvVal(process.env.SEEKLIT_PROXY_URL, origin);
-    const absPersonalizedResults = await localApi.getRecentBooks(
-      apiBaseUrl,
-      userToken
-    );
-    const recentBooks = absPersonalizedResults.abs_results;
 
     return Response.json({
       userToken,
       users: usersRes.users,
-      recentBooks,
       absBaseUrl,
     });
   } catch (error) {
     console.error(error);
     // User isn't admin
-    return Response.json({ userToken, users: [], recentBooks: [], absBaseUrl });
+    return Response.json({ userToken, users: [], absBaseUrl });
   }
 };
 
 export default function IndexHandler() {
   const user = useOptionalUser();
-  const { users, recentBooks, absBaseUrl } = useLoaderData<LoaderData>();
+  const { users, absBaseUrl } = useLoaderData<LoaderData>();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [serverSettings, setServerSettings] = useState<LocalServerSettings>();
+  const [recentBooks, setRecentBooks] = useState<BookItem[]>([]);
+  const [isLoadingRecent, setIsLoadingRecent] = useState(true);
 
   const [absSearchResults, setAbsSearchResults] = useState<UniversalBook[]>([]);
   const [externalSearchResults, setExternalSearchResults] = useState<
@@ -254,6 +248,25 @@ export default function IndexHandler() {
       .catch((err) => console.error(err));
   }, []);
 
+  // Get recent books on load
+  useEffect(() => {
+    if (!user) return;
+
+    setIsLoadingRecent(true);
+    localApi
+      .getRecentBooks(window.location.origin, user.accessToken)
+      .then((res) => {
+        setRecentBooks(res.abs_results);
+      })
+      .catch((err) => {
+        console.error("Error fetching recent books:", err);
+        setRecentBooks([]);
+      })
+      .finally(() => {
+        setIsLoadingRecent(false);
+      });
+  }, [user]);
+
   const handleKeydown = async (
     event: React.KeyboardEvent<HTMLInputElement>
   ) => {
@@ -341,6 +354,7 @@ export default function IndexHandler() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeydown}
+                  className="border-gray-600 focus:border-gray-400 hover:border-gray-500 transition-colors"
                 />
                 {isSearching && (
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -349,11 +363,7 @@ export default function IndexHandler() {
                 )}
               </div>
               <div className="ml-4 flex items-center">
-                <Avatar>
-                  <AvatarFallback>
-                    {user?.username.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar user={user} />
               </div>
             </div>
           </div>
@@ -381,7 +391,12 @@ export default function IndexHandler() {
 
           {!hasResults && !debouncedSearchQuery && (
             <>
-              {absRecentBooks.length > 0 ? (
+              {isLoadingRecent ? (
+                <div className="flex flex-col items-center justify-center text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                  <p className="text-gray-400">Loading recent books...</p>
+                </div>
+              ) : absRecentBooks.length > 0 ? (
                 <UniversalBookShelf
                   shelfType="ABS"
                   title="Recently Added"

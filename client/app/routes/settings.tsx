@@ -1,7 +1,7 @@
 /* eslint-disable import/no-unresolved */
 import Sidebar from "@/components/Sidebar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -232,11 +232,7 @@ export default function SettingsPage() {
               <span className="sr-only">Open sidebar</span>
             </Button>
             <div className="flex-1 flex items-center justify-end">
-              <Avatar>
-                <AvatarFallback>
-                  {user?.username.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={user} />
             </div>
           </div>
         </header>
@@ -270,7 +266,7 @@ export default function SettingsPage() {
                         <a
                           className="underline"
                           href={getEnvVal(
-                            import.meta.env.VITE_ABS_URL,
+                            import.meta.env.VITE_ABS_EXTERNAL_URL,
                             clientOrigin
                           )}
                         >

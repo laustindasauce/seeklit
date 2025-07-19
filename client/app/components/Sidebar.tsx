@@ -38,9 +38,9 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   return (
     <div
       ref={sidebarRef}
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-background shadow-lg transform ${
+      className={`fixed inset-y-0 left-0 z-50 w-48 bg-background border-r border-gray-600 shadow-lg transform ${
         isOpen ? "translate-x-0" : "-translate-x-full"
-      } transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:w-64`}
+      } transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:w-48`}
     >
       <div className="flex flex-col h-full">
         <div className="p-4">

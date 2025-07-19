@@ -1,5 +1,5 @@
 /* eslint-disable import/no-unresolved */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -53,13 +53,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import UserAvatar from "@/components/UserAvatar";
 import { Input } from "@/components/ui/input";
 
 // Define the data type for the loader
 type LoaderData = {
   userToken: string;
-  requests: BookRequest[];
 };
 
 export const loader: LoaderFunction = async ({
@@ -67,16 +66,7 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   const userToken = await getUserToken(request);
   if (!userToken) return redirect("/auth");
-  const clientOrigin = request.headers.get("referer") || "";
-  let origin = "";
-  try {
-    const url = new URL(clientOrigin);
-    origin = url.origin;
-  } catch (error) {
-    console.error("Invalid URL in referer:", clientOrigin);
-  }
-  const requests = await localApi.getRequests(origin, userToken);
-  const data: LoaderData = { userToken, requests };
+  const data: LoaderData = { userToken };
   return Response.json(data);
 };
 
@@ -85,14 +75,16 @@ const BookRequests = () => {
     null
   );
   const user = useOptionalUser();
-  const { requests: reqs } = useLoaderData<LoaderData>();
+  const {} = useLoaderData<LoaderData>();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [allRequests, setAllRequests] = useState<BookRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 5;
-  const totalPages = Math.ceil(reqs.length / limit);
-  const [requests, setRequests] = useState(reqs.slice(0, limit));
+  const totalPages = Math.ceil(allRequests.length / limit);
+  const [requests, setRequests] = useState<BookRequest[]>([]);
   const [editing, setEditing] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [formVals, setFormVals] = useState<EditBookRequest>({
@@ -109,6 +101,34 @@ const BookRequests = () => {
   };
 
   const { toast } = useToast();
+
+  // Fetch requests on component mount
+  useEffect(() => {
+    if (!user) return;
+
+    setIsLoadingRequests(true);
+    localApi
+      .getRequests(window.location.origin, user.accessToken)
+      .then((data) => {
+        setAllRequests(data);
+        // Set initial page of requests
+        setRequests(data.slice(0, limit));
+      })
+      .catch((err) => {
+        console.error("Error fetching requests:", err);
+        setAllRequests([]);
+        setRequests([]);
+      })
+      .finally(() => {
+        setIsLoadingRequests(false);
+      });
+  }, [user]);
+
+  // Update paginated requests when allRequests changes
+  useEffect(() => {
+    const index = (currentPage - 1) * limit;
+    setRequests(allRequests.slice(index, index + limit));
+  }, [allRequests, currentPage, limit]);
 
   const handleInfoClick = (request: BookRequest) => {
     setSelectedRequest(request);
@@ -166,7 +186,7 @@ const BookRequests = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     const index = (page - 1) * limit;
-    setRequests(reqs.slice(index, index + limit));
+    setRequests(allRequests.slice(index, index + limit));
   };
 
   const handleUpdate = async () => {
@@ -238,102 +258,107 @@ const BookRequests = () => {
               <span className="sr-only">Open sidebar</span>
             </Button>
             <div className="flex-1 flex items-center justify-end">
-              <Avatar>
-                <AvatarFallback>
-                  {user?.username.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={user} />
             </div>
           </div>
         </header>
         <main className="flex-1 overflow-x-auto overflow-y-auto p-4">
           <div className="container mx-auto py-10">
-            <div className="overflow-x-auto">
-              <Table className="mb-4">
-                <TableCaption>Your book requests</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cover</TableHead>
-                    {user?.type === "root" && <TableHead>Requestor</TableHead>}
-                    <TableHead>Title</TableHead>
-                    <TableHead>Author</TableHead>
-                    <TableHead>Approval Status</TableHead>
-                    <TableHead>Download Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {requests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell>
-                        {request.cover ? (
-                          <img
-                            src={request.cover}
-                            alt={`Cover of ${request.title}`}
-                            className="w-[50px] h-[75px] object-cover rounded-md"
-                          />
-                        ) : (
-                          <div className="w-[50px] h-[75px] bg-gray-200 flex items-center justify-center rounded-md">
-                            <Book className="h-6 w-6 text-gray-400" />
-                          </div>
-                        )}
-                      </TableCell>
+            {isLoadingRequests ? (
+              <div className="flex flex-col items-center justify-center text-center py-8">
+                <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                <p className="text-gray-400">Loading requests...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table className="mb-4">
+                  <TableCaption>Your book requests</TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cover</TableHead>
                       {user?.type === "root" && (
-                        <TableCell className="font-medium">
-                          {request.requestor_username}
-                        </TableCell>
+                        <TableHead>Requestor</TableHead>
                       )}
-                      <TableCell className="font-medium">
-                        {request.title}
-                      </TableCell>
-                      <TableCell>{request.author}</TableCell>
-                      <TableCell>
-                        {getStatusBadge(request.approval_status)}
-                      </TableCell>
-                      <TableCell>
-                        {getDownloadStatusBadge(request.download_status)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleInfoClick(request)}
-                        >
-                          <Info className="h-4 w-4" />
-                          <span className="sr-only">
-                            View details for {request.title}
-                          </span>
-                        </Button>
-                        {user?.type === "root" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditClick(request)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">
-                              Edit {request.title}
-                            </span>
-                          </Button>
-                        )}
-                        {request.download_status !== "complete" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveClick(request)}
-                          >
-                            <Trash className="h-4 w-4" />
-                            <span className="sr-only">
-                              Remove {request.title}
-                            </span>
-                          </Button>
-                        )}
-                      </TableCell>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Author</TableHead>
+                      <TableHead>Approval Status</TableHead>
+                      <TableHead>Download Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {requests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell>
+                          {request.cover ? (
+                            <img
+                              src={request.cover}
+                              alt={`Cover of ${request.title}`}
+                              className="w-[50px] h-[75px] object-cover rounded-md"
+                            />
+                          ) : (
+                            <div className="w-[50px] h-[75px] bg-gray-200 flex items-center justify-center rounded-md">
+                              <Book className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </TableCell>
+                        {user?.type === "root" && (
+                          <TableCell className="font-medium">
+                            {request.requestor_username}
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium">
+                          {request.title}
+                        </TableCell>
+                        <TableCell>{request.author}</TableCell>
+                        <TableCell>
+                          {getStatusBadge(request.approval_status)}
+                        </TableCell>
+                        <TableCell>
+                          {getDownloadStatusBadge(request.download_status)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleInfoClick(request)}
+                          >
+                            <Info className="h-4 w-4" />
+                            <span className="sr-only">
+                              View details for {request.title}
+                            </span>
+                          </Button>
+                          {user?.type === "root" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(request)}
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">
+                                Edit {request.title}
+                              </span>
+                            </Button>
+                          )}
+                          {request.download_status !== "complete" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveClick(request)}
+                            >
+                              <Trash className="h-4 w-4" />
+                              <span className="sr-only">
+                                Remove {request.title}
+                              </span>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
             {totalPages > 1 && (
               <div className="mt-4 flex justify-center">
                 <Pagination>

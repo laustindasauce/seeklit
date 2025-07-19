@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { redirect } from "@remix-run/react";
 import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import UserAvatar from "@/components/UserAvatar";
 
 // Define the loader for user authentication.
 export const loader: LoaderFunction = async ({
@@ -48,11 +48,7 @@ export default function HelpPage() {
               <span className="sr-only">Open sidebar</span>
             </Button>
             <div className="flex-1 flex items-center justify-end">
-              <Avatar>
-                <AvatarFallback>
-                  {user?.username.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={user} />
             </div>
           </div>
         </header>

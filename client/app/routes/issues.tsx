@@ -1,5 +1,5 @@
 /* eslint-disable import/no-unresolved */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -45,12 +45,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getEnvVal } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import UserAvatar from "@/components/UserAvatar";
 
 // Define the data type for the loader
 type LoaderData = {
   userToken: string;
-  issues: Issue[];
 };
 
 export const loader: LoaderFunction = async ({
@@ -58,30 +57,23 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   const userToken = await getUserToken(request);
   if (!userToken) return redirect("/auth");
-  const clientOrigin = request.headers.get("referer") || "";
-  let origin = "";
-  try {
-    const url = new URL(clientOrigin);
-    origin = url.origin;
-  } catch (error) {
-    console.error("Invalid URL in referer:", clientOrigin);
-  }
-  const issues = await localApi.getIssues(origin, userToken);
-  const data: LoaderData = { userToken, issues };
+  const data: LoaderData = { userToken };
   return Response.json(data);
 };
 
 const Issues = () => {
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const user = useOptionalUser();
-  const { issues: reqs } = useLoaderData<LoaderData>();
+  const {} = useLoaderData<LoaderData>();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [allIssues, setAllIssues] = useState<Issue[]>([]);
+  const [isLoadingIssues, setIsLoadingIssues] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 5;
-  const totalPages = Math.ceil(reqs.length / limit);
-  const [issues, setIssues] = useState(reqs.slice(0, limit));
+  const totalPages = Math.ceil(allIssues.length / limit);
+  const [issues, setIssues] = useState<Issue[]>([]);
   const [editing, setEditing] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [formVals, setFormVals] = useState<EditIssue>({
@@ -96,6 +88,34 @@ const Issues = () => {
   };
 
   const { toast } = useToast();
+
+  // Fetch issues on component mount
+  useEffect(() => {
+    if (!user) return;
+
+    setIsLoadingIssues(true);
+    localApi
+      .getIssues(window.location.origin, user.accessToken)
+      .then((data) => {
+        setAllIssues(data);
+        // Set initial page of issues
+        setIssues(data.slice(0, limit));
+      })
+      .catch((err) => {
+        console.error("Error fetching issues:", err);
+        setAllIssues([]);
+        setIssues([]);
+      })
+      .finally(() => {
+        setIsLoadingIssues(false);
+      });
+  }, [user]);
+
+  // Update paginated issues when allIssues changes
+  useEffect(() => {
+    const index = (currentPage - 1) * limit;
+    setIssues(allIssues.slice(index, index + limit));
+  }, [allIssues, currentPage, limit]);
 
   const handleInfoClick = (issue: Issue) => {
     setSelectedIssue(issue);
@@ -151,7 +171,7 @@ const Issues = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     const index = (page - 1) * limit;
-    setIssues(reqs.slice(index, index + limit));
+    setIssues(allIssues.slice(index, index + limit));
   };
 
   const handleUpdate = async () => {
@@ -227,97 +247,104 @@ const Issues = () => {
               <span className="sr-only">Open sidebar</span>
             </Button>
             <div className="flex-1 flex items-center justify-end">
-              <Avatar>
-                <AvatarFallback>
-                  {user?.username.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={user} />
             </div>
           </div>
         </header>
         <main className="flex-1 overflow-x-auto overflow-y-auto p-4">
           <div className="container mx-auto py-10">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableCaption>Your reported issues</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cover</TableHead>
-                    {user?.type === "root" && <TableHead>Creator</TableHead>}
-                    <TableHead>Title</TableHead>
-                    <TableHead>Severity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {issues.map((issue) => (
-                    <TableRow key={issue.id}>
-                      <TableCell>
-                        <img
-                          src={absBaseUrl + `/api/items/${issue.book_id}/cover`}
-                          alt={`Cover of ${issue.book_title}`}
-                          className="w-[50px] h-[75px] object-cover rounded-md"
-                        />
-                      </TableCell>
-                      {user?.type === "root" && (
-                        <TableCell className="font-medium">
-                          {issue.creator_username}
-                        </TableCell>
-                      )}
-                      <TableCell className="font-medium">
-                        <a
-                          href={`${absBaseUrl}/item/${issue.book_id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline"
-                        >
-                          {issue.book_title}
-                        </a>
-                      </TableCell>
-                      <TableCell>{getSeverityBadge(issue.severity)}</TableCell>
-                      <TableCell>{getStatusBadge(issue.status)}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleInfoClick(issue)}
-                        >
-                          <Info className="h-4 w-4" />
-                          <span className="sr-only">
-                            View details for {issue.book_title}
-                          </span>
-                        </Button>
-                        {user?.type === "root" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditClick(issue)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">
-                              Edit {issue.book_title}
-                            </span>
-                          </Button>
-                        )}
-                        {issue.status !== "resolved" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveClick(issue)}
-                          >
-                            <Trash className="h-4 w-4" />
-                            <span className="sr-only">
-                              Remove {issue.book_title} issue
-                            </span>
-                          </Button>
-                        )}
-                      </TableCell>
+            {isLoadingIssues ? (
+              <div className="flex flex-col items-center justify-center text-center py-8">
+                <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                <p className="text-gray-400">Loading issues...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableCaption>Your reported issues</TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cover</TableHead>
+                      {user?.type === "root" && <TableHead>Creator</TableHead>}
+                      <TableHead>Title</TableHead>
+                      <TableHead>Severity</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {issues.map((issue) => (
+                      <TableRow key={issue.id}>
+                        <TableCell>
+                          <img
+                            src={
+                              absBaseUrl + `/api/items/${issue.book_id}/cover`
+                            }
+                            alt={`Cover of ${issue.book_title}`}
+                            className="w-[50px] h-[75px] object-cover rounded-md"
+                          />
+                        </TableCell>
+                        {user?.type === "root" && (
+                          <TableCell className="font-medium">
+                            {issue.creator_username}
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium">
+                          <a
+                            href={`${absBaseUrl}/item/${issue.book_id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline"
+                          >
+                            {issue.book_title}
+                          </a>
+                        </TableCell>
+                        <TableCell>
+                          {getSeverityBadge(issue.severity)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(issue.status)}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleInfoClick(issue)}
+                          >
+                            <Info className="h-4 w-4" />
+                            <span className="sr-only">
+                              View details for {issue.book_title}
+                            </span>
+                          </Button>
+                          {user?.type === "root" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(issue)}
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">
+                                Edit {issue.book_title}
+                              </span>
+                            </Button>
+                          )}
+                          {issue.status !== "resolved" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveClick(issue)}
+                            >
+                              <Trash className="h-4 w-4" />
+                              <span className="sr-only">
+                                Remove {issue.book_title} issue
+                              </span>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
             {totalPages > 1 && (
               <div className="mt-4 flex justify-center">
                 <Pagination>
