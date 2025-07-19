@@ -1,0 +1,62 @@
+name: ebooks
+
+networks:
+  proxynet:
+    name: ebooks_network
+    external: false
+
+x-ebooks-container: &ebooks-container
+  restart: always
+  networks:
+    - proxynet
+
+services:
+  client:
+    <<: *ebooks-container
+    image: ghcr.io/laustindasauce/seeklit-client:latest
+    container_name: seeklit-client
+    environment:
+      SEEKLIT_ABS_URL: http://audiobookshelf:80
+      SEEKLIT_ABS_EXTERNAL_URL: https://abs.example.com
+      SEEKLIT_ADMIN_EMAIL: 
+      SEEKLIT_PROXY_URL: http://seeklit-nginx
+    depends_on:
+      - server
+
+  server:
+    <<: *ebooks-container
+    image: ghcr.io/laustindasauce/seeklit-server:latest
+    container_name: seeklit-server
+    environment:
+      SEEKLIT_CONF_FILE: /config/seeklit.conf
+    volumes:
+      - /mnt/volume/config/seeklit:/config
+      - /mnt/volume/data/seeklit:/data # SQLite DB location
+
+  nginx:
+    <<: *ebooks-container
+    image: ghcr.io/laustindasauce/seeklit-client:main
+    container_name: seeklit-nginx
+    command: nginx
+    ports:
+      - "32455:80"
+    environment:
+      SEEKLIT_PROXY_CLIENT_URL: http://seeklit-dev:3000
+      SEEKLIT_PROXY_SERVER_URL: http://seeklit-server-dev:8416
+    depends_on:
+      - client
+      - server
+
+  # audiobookshelf:
+  #   <<: *ebooks-container
+  #   image: ghcr.io/advplyr/audiobookshelf:latest
+  #   container_name: audiobookshelf
+  #   expose:
+  #     - 80
+  #   ports:
+  #     - "13378:80"
+  #   volumes:
+  #     - $DATADIR/media/books:/ebooks:ro
+  #     - $DATADIR/media/audiobooks:/audiobooks:ro
+  #     - $CONFIGDIR/audiobookshelf:/config
+  #     - $STORAGEDIR/audiobookshelf:/metadata
