@@ -1,17 +1,9 @@
 // api.ts
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-import { getEnvVal } from "./utils";
 
 const getApiClient = (baseUrl?: string) => {
   if (!baseUrl) {
-    // For server-side rendering, use SEEKLIT_PROXY_URL, otherwise use window.location.origin
-    const fallback =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : process.env.SEEKLIT_PROXY_URL;
-    baseUrl = getEnvVal(import.meta.env.VITE_PROXY_URL, String(fallback));
-  } else {
-    baseUrl = getEnvVal(import.meta.env.VITE_PROXY_URL, baseUrl);
+    baseUrl = window.location.origin;
   }
 
   console.log(baseUrl);
