@@ -205,4 +205,40 @@ func init() {
             Filters: nil,
             Params: nil})
 
+    beego.GlobalControllerRouter["api/controllers:UserPreferencesController"] = append(beego.GlobalControllerRouter["api/controllers:UserPreferencesController"],
+        beego.ControllerComments{
+            Method: "Get",
+            Router: `/`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:UserPreferencesController"] = append(beego.GlobalControllerRouter["api/controllers:UserPreferencesController"],
+        beego.ControllerComments{
+            Method: "Put",
+            Router: `/`,
+            AllowHTTPMethods: []string{"put"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:UserPreferencesController"] = append(beego.GlobalControllerRouter["api/controllers:UserPreferencesController"],
+        beego.ControllerComments{
+            Method: "SendVerificationEmail",
+            Router: `/verify-email`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:UserPreferencesController"] = append(beego.GlobalControllerRouter["api/controllers:UserPreferencesController"],
+        beego.ControllerComments{
+            Method: "VerifyEmail",
+            Router: `/verify-email`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
 }

@@ -45,6 +45,14 @@ func init() {
 					&controllers.SearchController{},
 				),
 			),
+			beego.NSNamespace("/user",
+				beego.NSBefore(middlewares.JWTAuthMiddleware),
+				beego.NSNamespace("/preferences",
+					beego.NSInclude(
+						&controllers.UserPreferencesController{},
+					),
+				),
+			),
 		),
 	)
 	beego.AddNamespace(ns)

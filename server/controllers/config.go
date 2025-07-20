@@ -19,7 +19,7 @@ type ConfigController struct {
 // @Success 200 {object} map[string]any
 // @router / [get]
 func (s *ConfigController) Get() {
-	sections := []string{"default", "general", "db", "metadata", "notify", "download"}
+	sections := []string{"default", "general", "db", "metadata", "notify", "download", "smtp"}
 
 	// Create a map to hold the configuration options
 	configMap := make(map[string]map[string]string)

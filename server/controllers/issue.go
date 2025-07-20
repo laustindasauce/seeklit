@@ -50,7 +50,7 @@ func (i *IssueController) Post() {
 	title := fmt.Sprintf("🆕📔 issue #%d submitted on Seeklit by %s!!", issue.ID, issue.CreatorUsername)
 	body := fmt.Sprintf(`%s: %s/item/%s`, issue.BookTitle,
 		config.DefaultString("general::audiobookshelfurl", ""), issue.BookID)
-	notifications.SendNotification(title, body)
+	notifications.SendAdminNotification(title, body)
 
 	i.Data["json"] = *issue
 
@@ -167,6 +167,9 @@ func (i *IssueController) Patch() {
 		return
 	}
 
+	// Store original status for comparison
+	originalStatus := issue.Status
+
 	issue, err = issueRepository.UpdateIssue(issue, *issueUpdate)
 	if err != nil {
 		logs.Warn("Error creating Issue: %v\n", err)
@@ -174,6 +177,16 @@ func (i *IssueController) Patch() {
 		i.Data["json"] = map[string]string{"error": "Internal Server error occurred while creating issue."}
 		i.ServeJSON()
 		return
+	}
+
+	// Send notifications for status changes
+	if issueUpdate.Status != nil && originalStatus != *issueUpdate.Status {
+		switch *issueUpdate.Status {
+		case models.ISResolved:
+			notifications.SendIssueStatusNotification(issue, "resolved")
+		case models.ISCancelled:
+			notifications.SendIssueStatusNotification(issue, "cancelled")
+		}
 	}
 
 	logs.Info("issue #%d updated successfully.", issue.ID)

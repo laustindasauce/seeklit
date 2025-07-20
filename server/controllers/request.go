@@ -49,7 +49,7 @@ func (r *RequestController) Post() {
 	logs.Info("Book request #%d created successfully.", request.ID)
 	title := fmt.Sprintf("🆕📔 request #%d submitted on Seeklit by %s!!", request.ID, request.RequestorUsername)
 	body := fmt.Sprintf(`%s by %s`, request.Title, request.Author)
-	notifications.SendNotification(title, body)
+	notifications.SendAdminNotification(title, body)
 
 	if request.ApprovalStatus == models.ASApproved {
 		request = helpers.HandleDownload(request, requestRepository)
@@ -171,6 +171,10 @@ func (r *RequestController) Patch() {
 		return
 	}
 
+	// Store original status for comparison
+	originalApprovalStatus := request.ApprovalStatus
+	originalDownloadStatus := request.DownloadStatus
+
 	request, err = requestRepository.UpdateBookRequest(request, *bookRequestUpdate)
 	if err != nil {
 		logs.Warn("Error creating BookRequest: %v\n", err)
@@ -183,6 +187,32 @@ func (r *RequestController) Patch() {
 	if request.ApprovalStatus == models.ASApproved && request.DownloadStatus == models.DSPending {
 		logs.Info("Request approved, starting search!")
 		request = helpers.HandleDownload(request, requestRepository)
+	}
+
+	// Send notification for status changes (only one email per update)
+	var notificationType string
+
+	// Priority order: completed > failed > approved > denied
+	// Download status changes take priority over approval status changes
+	if bookRequestUpdate.DownloadStatus != nil && originalDownloadStatus != *bookRequestUpdate.DownloadStatus {
+		switch *bookRequestUpdate.DownloadStatus {
+		case models.DSComplete:
+			notificationType = "completed"
+		case models.DSFailure:
+			notificationType = "failed"
+		}
+	} else if bookRequestUpdate.ApprovalStatus != nil && originalApprovalStatus != *bookRequestUpdate.ApprovalStatus {
+		switch *bookRequestUpdate.ApprovalStatus {
+		case models.ASApproved:
+			notificationType = "approved"
+		case models.ASDenied:
+			notificationType = "denied"
+		}
+	}
+
+	// Send single notification if there's a status change worth notifying about
+	if notificationType != "" {
+		notifications.SendBookRequestStatusNotification(request, notificationType)
 	}
 
 	logs.Info("Book request #%d updated successfully.", request.ID)

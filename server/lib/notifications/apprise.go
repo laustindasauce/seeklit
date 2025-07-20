@@ -10,9 +10,8 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-func sendAppriseNotification(title, body string) error {
+func sendAppriseNotification(appriseService, title, body string) error {
 	appriseServer := config.DefaultString("notify::appriseserver", "")
-	appriseService := config.DefaultString("notify::appriseservice", "")
 
 	// Define the request payload
 	payload := map[string]string{

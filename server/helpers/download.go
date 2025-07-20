@@ -32,7 +32,7 @@ func HandleDownload(request *models.BookRequest, requestRepository models.Reques
 		Year: %s`, cwaStr, book.Title, book.Author, book.ID,
 			book.Size, book.Format, book.Year)
 
-		notifications.SendNotification(title, body)
+		notifications.SendAdminNotification(title, body)
 		status = models.DSComplete
 	}
 
