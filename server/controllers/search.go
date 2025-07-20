@@ -548,7 +548,6 @@ func getAuthorBooks(token, authorID string) ([]any, error) {
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.URL.Query().Add("include", "items")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -607,9 +606,7 @@ func searchLibraries(token string, libraryIds []string, q string) ([]any, error)
 		}
 
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-		encodedQuery := url.QueryEscape(q)
-		req.URL.Query().Add("q", encodedQuery)
-		logs.Debug("Encoded Query Parameters: %s", req.URL.Query().Encode())
+		logs.Debug("Query Parameters: %s", params.Encode())
 
 		client := &http.Client{}
 		resp, err := client.Do(req)

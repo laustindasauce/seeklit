@@ -51,7 +51,7 @@ func Connect() {
 	logs.Info("Connection Opened to database.")
 
 	// Migrate the models into DB
-	DB.AutoMigrate(&models.BookRequest{}, &models.Issue{})
+	DB.AutoMigrate(&models.BookRequest{}, &models.Issue{}, &models.UserPreferences{})
 
 	logs.Info("Database Migrated")
 }
