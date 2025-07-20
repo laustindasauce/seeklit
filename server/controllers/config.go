@@ -75,6 +75,15 @@ func (s *ConfigController) Get() {
 // @Failure 403 body is empty
 // @router / [patch]
 func (c *ConfigController) UpdateConfig() {
+	// Check if user is admin
+	user := middlewares.GetUser(c.Ctx)
+	if user == nil || (user.Type != "admin" && user.Type != "root") {
+		c.Ctx.Output.SetStatus(403)
+		c.Data["json"] = map[string]string{"error": "Admin access required"}
+		c.ServeJSON()
+		return
+	}
+
 	// Parse the JSON body
 	var req models.ConfigUpdateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
