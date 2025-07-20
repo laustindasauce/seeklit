@@ -326,6 +326,87 @@ const getRecentBooks = async (baseUrl: string, token: string) => {
   }
 };
 
+// Function to get user preferences
+const getUserPreferences = async (token: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<UserPreferences> = await apiClient.get(
+      "/user/preferences",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Get user preferences error:", error);
+    throw error;
+  }
+};
+
+// Function to update user preferences
+const updateUserPreferences = async (
+  token: string,
+  preferences: Partial<UserPreferences>
+) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<UserPreferences> = await apiClient.put(
+      "/user/preferences",
+      preferences,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Update user preferences error:", error);
+    throw error;
+  }
+};
+
+// Function to send email verification
+const sendEmailVerification = async (token: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<{ message: string }> = await apiClient.post(
+      "/user/preferences/verify-email",
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Send email verification error:", error);
+    throw error;
+  }
+};
+
+// Function to verify email with code
+const verifyEmail = async (token: string, code: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<{ message: string }> = await apiClient.get(
+      `/user/preferences/verify-email?code=${code}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Verify email error:", error);
+    throw error;
+  }
+};
+
 export const localApi = {
   createNewIssue,
   createNewRequest,
@@ -336,11 +417,15 @@ export const localApi = {
   getRequests,
   getServerConfig,
   getServerSettings,
+  getUserPreferences,
   googleSearch,
   openlibSearch,
   hardcoverSearch,
   readarrSearch,
+  sendEmailVerification,
   updateIssue,
   updateRequest,
   updateServerConfig,
+  updateUserPreferences,
+  verifyEmail,
 };

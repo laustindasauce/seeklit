@@ -86,3 +86,13 @@ type ServerConfigUpdate = {
   key: string;
   value: string;
 };
+
+type UserPreferences = {
+  id: number;
+  userId: string;
+  email: string;
+  notificationsEnabled: boolean;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+};

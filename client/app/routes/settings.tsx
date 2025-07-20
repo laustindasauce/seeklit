@@ -1,5 +1,6 @@
 /* eslint-disable import/no-unresolved */
 import AdminConfiguration from "@/components/AdminConfiguration";
+import NotificationSettings from "@/components/NotificationSettings";
 import Sidebar from "@/components/Sidebar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import UserAvatar from "@/components/UserAvatar";
@@ -43,51 +44,19 @@ export const loader: LoaderFunction = async ({
   return Response.json({ userToken });
 };
 
-// Mock config data
-const defaultConfig = {
-  db: {
-    defaultaprrovalstatus: "pending",
-    logcolorful: "true",
-    loglevel: "warn",
-    path: "/data",
-  },
-  default: {
-    appname: "seeklit",
-    autorender: "false",
-    copyrequestbody: "true",
-    enabledocs: "true",
-    httpport: "8416",
-    routercasesensitive: "false",
-    runmode: "prod",
-  },
-  download: {
-    blockedterms:
-      "bundle,collection,preview,chapters,/,box set,collected works,book set,mystery writers,mystery stories,novels,sneak peek,oldswe,cbz,sampler",
-    cwaenabled: "false",
-    cwaurl: "http://cwa-downloader:8084",
-    ebookmaxbytes: "25 << 20",
-    ebookminbytes: "104858",
-  },
-  general: {
-    audiobookshelfurl: "http://audiobookshelf:80",
-    level: "6",
-  },
-  metadata: {
-    googleapikey: "",
-    hardcoverbearertoken: "",
-    provider: "OPENLIBRARY",
-  },
-  notify: {
-    telegrambottoken: "",
-    telegramchatid: "",
-    telegramenabled: "false",
-  },
-};
-
 export default function SettingsPage() {
   const user = useOptionalUser();
   const [isOpen, setIsOpen] = React.useState(false);
-  const [config, setConfig] = React.useState<ServerConfig>(defaultConfig);
+  const [config, setConfig] = React.useState<ServerConfig>({});
+  const [userPreferences, setUserPreferences] =
+    React.useState<UserPreferences | null>(null);
+  const [isLoadingPrefs, setIsLoadingPrefs] = React.useState(false);
+  const [isSavingPrefs, setIsSavingPrefs] = React.useState(false);
+  const [verificationCode, setVerificationCode] = React.useState("");
+  const [isSendingVerification, setIsSendingVerification] =
+    React.useState(false);
+  const [isVerifyingEmail, setIsVerifyingEmail] = React.useState(false);
+  const { toast } = useToast();
 
   const clientOrigin =
     typeof window !== "undefined" ? window.location.origin : "";
@@ -98,10 +67,122 @@ export default function SettingsPage() {
       setConfig(res);
     };
 
+    const getUserPreferences = async (token: string) => {
+      setIsLoadingPrefs(true);
+      try {
+        const prefs = await localApi.getUserPreferences(token);
+        setUserPreferences(prefs);
+      } catch (error) {
+        console.error("Failed to load user preferences:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load notification preferences",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingPrefs(false);
+      }
+    };
+
     if (user) {
       getServerConfig(user.accessToken);
+      getUserPreferences(user.accessToken);
     }
-  }, [user]);
+  }, [user, toast]);
+
+  const handleSavePreferences = async () => {
+    if (!user || !userPreferences) return;
+
+    setIsSavingPrefs(true);
+    try {
+      const updatedPrefs = await localApi.updateUserPreferences(
+        user.accessToken,
+        {
+          email: userPreferences.email,
+          notificationsEnabled: userPreferences.notificationsEnabled,
+        }
+      );
+      setUserPreferences(updatedPrefs);
+      toast({
+        title: "Success",
+        description: "Notification preferences saved successfully",
+      });
+    } catch (error) {
+      console.error("Failed to save user preferences:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save notification preferences",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPrefs(false);
+    }
+  };
+
+  const handleEmailChange = (email: string) => {
+    if (userPreferences) {
+      setUserPreferences({ ...userPreferences, email });
+    }
+  };
+
+  const handleNotificationsToggle = (enabled: boolean) => {
+    if (userPreferences) {
+      setUserPreferences({ ...userPreferences, notificationsEnabled: enabled });
+    }
+  };
+
+  // Helper function to check if SMTP is enabled
+  const isSmtpEnabled = () => {
+    return config?.smtp?.enabled === "true" && config?.smtp?.host;
+  };
+
+  const handleSendVerification = async () => {
+    if (!user || !userPreferences?.email) return;
+
+    setIsSendingVerification(true);
+    try {
+      await localApi.sendEmailVerification(user.accessToken);
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your email for the verification code",
+      });
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send verification email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!user || !verificationCode.trim()) return;
+
+    setIsVerifyingEmail(true);
+    try {
+      await localApi.verifyEmail(user.accessToken, verificationCode.trim());
+      // Refresh user preferences to get updated verification status
+      const updatedPrefs = await localApi.getUserPreferences(user.accessToken);
+      setUserPreferences(updatedPrefs);
+      setVerificationCode("");
+      toast({
+        title: "Email Verified",
+        description: "Your email has been successfully verified",
+      });
+    } catch (error) {
+      console.error("Failed to verify email:", error);
+      toast({
+        title: "Error",
+        description: "Invalid verification code",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifyingEmail(false);
+    }
+  };
 
   return (
     <div className="flex h-screen">
@@ -201,58 +282,15 @@ export default function SettingsPage() {
                 </Card>
               </TabsContent>
               <TabsContent value="notifications">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Notification Preferences</CardTitle>
-                    <CardDescription>
-                      Manage your notification settings.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Alert className="mb-4 border-yellow-200 bg-yellow-100 text-yellow-900">
-                      {/* Added color hex for blue-900 */}
-                      <ConstructionIcon className="h-4 w-4" color="#9F3F12" />
-                      <AlertTitle>Coming soon...</AlertTitle>
-                      <AlertDescription>
-                        Notifications will be enabled in a future release!
-                      </AlertDescription>
-                    </Alert>
-                    <div className="space-y-2">
-                      <Label htmlFor="can-req">Notification Type</Label>
-                      <Checkbox
-                        id="can-req"
-                        className="ml-3"
-                        disabled
-                        checked={user?.permissions.download}
-                      />
-                      <Select>
-                        <SelectTrigger id="language">
-                          <SelectValue placeholder="Select a type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="discord">Discord</SelectItem>
-                          <SelectItem value="telegram">Telegram</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="on-approved">On Approval</Label>
-                      <Switch id="on-approved" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="on-status-change">On Status Change</Label>
-                      <Switch id="on-status-change" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="on-completed">On Completed</Label>
-                      <Switch id="on-completed" />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button disabled>Save Preferences</Button>
-                  </CardFooter>
-                </Card>
+                <NotificationSettings
+                  user={user}
+                  config={config}
+                  userPreferences={userPreferences}
+                  setUserPreferences={setUserPreferences}
+                  isLoadingPrefs={isLoadingPrefs}
+                  isSavingPrefs={isSavingPrefs}
+                  onSavePreferences={handleSavePreferences}
+                />
               </TabsContent>
               <TabsContent value="privacy">
                 <Card>
