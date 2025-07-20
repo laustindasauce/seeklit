@@ -89,7 +89,7 @@ export default function SignInPage() {
                 id="username"
                 name="username"
                 type="text"
-                className="border-gray-600 focus:border-gray-400 hover:border-gray-500 transition-colors"
+                className="input-styled"
                 required
               />
             </div>
