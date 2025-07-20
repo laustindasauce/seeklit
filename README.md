@@ -38,16 +38,15 @@ make up-separate
 
 Configure your deployment with these environment variables:
 
-| Variable                   | Description                         | Default                | Required |
-| -------------------------- | ----------------------------------- | ---------------------- | -------- |
-| `SEEKLIT_ABS_URL`          | Internal AudioBookshelf API URL     | -                      | Yes      |
-| `SEEKLIT_ABS_EXTERNAL_URL` | External AudioBookshelf URL         | -                      | Yes      |
-| `SEEKLIT_ADMIN_EMAIL`      | Admin contact email                 | -                      | Yes      |
-| `SEEKLIT_PROXY_URL`        | Internal proxy URL for SSR requests | `http://seeklit-nginx` | No       |
-| `SEEKLIT_CONF_FILE`        | Configuration file path             | `/config/seeklit.conf` | No       |
-| `TZ`                       | Timezone                            | `America/New_York`     | No       |
-| `PUID`                     | User ID for file permissions        | `1000`                 | No       |
-| `PGID`                     | Group ID for file permissions       | `1000`                 | No       |
+| Variable                   | Description                     | Default                | Required |
+| -------------------------- | ------------------------------- | ---------------------- | -------- |
+| `SEEKLIT_ABS_URL`          | Internal AudioBookshelf API URL | -                      | Yes      |
+| `SEEKLIT_ABS_EXTERNAL_URL` | External AudioBookshelf URL     | -                      | Yes      |
+| `SEEKLIT_ADMIN_EMAIL`      | Admin contact email             | -                      | Yes      |
+| `SEEKLIT_CONF_FILE`        | Configuration file path         | `/config/seeklit.conf` | No       |
+| `TZ`                       | Timezone                        | `America/New_York`     | No       |
+| `PUID`                     | User ID for file permissions    | `1000`                 | No       |
+| `PGID`                     | Group ID for file permissions   | `1000`                 | No       |
 
 ### Updating Containers
 

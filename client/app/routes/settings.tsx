@@ -1,4 +1,5 @@
 /* eslint-disable import/no-unresolved */
+import AdminConfiguration from "@/components/AdminConfiguration";
 import Sidebar from "@/components/Sidebar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import UserAvatar from "@/components/UserAvatar";
@@ -26,19 +27,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { localApi } from "@/lib/localApi";
-import { getEnvVal, isSensitiveKey } from "@/lib/utils";
+import { getEnvVal } from "@/lib/utils";
 import { getUserToken } from "@/session.server";
 import { useOptionalUser } from "@/utils";
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
-import {
-  AlertTriangleIcon,
-  ConstructionIcon,
-  EyeIcon,
-  EyeOffIcon,
-  InfoIcon,
-  MenuIcon,
-  SaveIcon,
-} from "lucide-react";
+import { ConstructionIcon, InfoIcon, MenuIcon } from "lucide-react";
 import React from "react";
 
 // Define the loader for user authentication.
@@ -95,10 +88,6 @@ export default function SettingsPage() {
   const user = useOptionalUser();
   const [isOpen, setIsOpen] = React.useState(false);
   const [config, setConfig] = React.useState<ServerConfig>(defaultConfig);
-  const [visibleSecrets, setVisibleSecrets] = React.useState<
-    Record<string, boolean>
-  >({});
-  const { toast } = useToast();
 
   const clientOrigin =
     typeof window !== "undefined" ? window.location.origin : "";
@@ -113,107 +102,6 @@ export default function SettingsPage() {
       getServerConfig(user.accessToken);
     }
   }, [user]);
-
-  const handleConfigChange = (section: string, key: string, value: string) => {
-    setConfig((prevConfig) => ({
-      ...prevConfig,
-      [section]: {
-        ...prevConfig[section],
-        [key]: value,
-      },
-    }));
-  };
-
-  const handleSaveConfig = async (
-    section: string,
-    key: string,
-    value: string
-  ) => {
-    if (!user) return;
-    try {
-      key = `${section}::${key}`;
-
-      await localApi.updateServerConfig(user.accessToken, { key, value });
-
-      toast({
-        title: `Config (${key}) updated`,
-      });
-    } catch (error) {
-      console.error("Error updating config:", error);
-      toast({
-        title: "Error",
-        description: "Something went wrong updating config. Check the logs.",
-      });
-    }
-  };
-
-  const toggleSecretVisibility = (section: string, key: string) => {
-    setVisibleSecrets((prev) => ({
-      ...prev,
-      [`${section}.${key}`]: !prev[`${section}.${key}`],
-    }));
-  };
-
-  const renderConfigInput = (section: string, key: string, value: string) => {
-    const isSecret = isSensitiveKey(key);
-    const isVisible = visibleSecrets[`${section}.${key}`];
-
-    return (
-      <div key={key} className="mb-4 flex items-center">
-        <Label htmlFor={`${section}-${key}`} className="w-1/3">
-          {key}
-        </Label>
-        <div className="w-1/2 mr-2 flex">
-          <Input
-            id={`${section}-${key}`}
-            type={isSecret && !isVisible ? "password" : "text"}
-            value={value}
-            onChange={(e) => handleConfigChange(section, key, e.target.value)}
-            className="flex-grow"
-          />
-          {isSecret && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => toggleSecretVisibility(section, key)}
-              className="ml-2"
-            >
-              {isVisible ? (
-                <EyeOffIcon className="h-4 w-4" />
-              ) : (
-                <EyeIcon className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-        </div>
-        <Button
-          onClick={() => handleSaveConfig(section, key, config[section][key])}
-        >
-          <SaveIcon className="h-4 w-4 mr-2" />
-          Save
-        </Button>
-      </div>
-    );
-  };
-
-  const renderConfigSection = (
-    section: string,
-    data: Record<string, string>
-  ) => (
-    <Card className="mb-4" key={section}>
-      <CardHeader>
-        <CardTitle>
-          {section.charAt(0).toUpperCase() + section.slice(1)} Configuration
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {Object.entries(data).map(([key, value]) =>
-          renderConfigInput(section, key, value)
-        )}
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="flex h-screen">
@@ -413,28 +301,11 @@ export default function SettingsPage() {
               </TabsContent>
               {user?.type === "root" && (
                 <TabsContent value="admin">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Admin Configuration</CardTitle>
-                      <CardDescription>
-                        Manage server configuration settings.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Alert variant="destructive" className="mb-6">
-                        <AlertTriangleIcon className="h-4 w-4" />
-                        <AlertTitle>Warning</AlertTitle>
-                        <AlertDescription>
-                          Changing these settings could potentially break the
-                          application. Some changes may require a server restart
-                          to take effect. Proceed with caution.
-                        </AlertDescription>
-                      </Alert>
-                      {Object.entries(config).map(([section, data]) =>
-                        renderConfigSection(section, data)
-                      )}
-                    </CardContent>
-                  </Card>
+                  <AdminConfiguration
+                    config={config}
+                    setConfig={setConfig}
+                    userToken={user.accessToken}
+                  />
                 </TabsContent>
               )}
             </Tabs>

@@ -354,7 +354,7 @@ export default function IndexHandler() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeydown}
-                  className="border-gray-600 focus:border-gray-400 hover:border-gray-500 transition-colors"
+                  className="input-styled"
                 />
                 {isSearching && (
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">

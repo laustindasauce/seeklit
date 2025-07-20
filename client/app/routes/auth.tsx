@@ -85,11 +85,23 @@ export default function SignInPage() {
           <Form method="post" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" name="username" type="text" required />
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                className="input-styled"
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                className="border-gray-600 focus:border-gray-400 hover:border-gray-500 transition-colors"
+                required
+              />
             </div>
             {/* <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (

@@ -58,3 +58,8 @@ body {
     color-scheme: dark;
   }
 }
+
+/* Custom input styling */
+.input-styled {
+  @apply border-gray-600 focus:border-gray-400 hover:border-gray-500 transition-colors;
+}

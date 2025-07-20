@@ -40,7 +40,6 @@ services:
       SEEKLIT_ABS_URL: http://audiobookshelf:80
       SEEKLIT_ABS_EXTERNAL_URL: http://localhost:13378 # Change this to your external ABS URL
       SEEKLIT_ADMIN_EMAIL: admin@example.com # Change this to your admin email
-      SEEKLIT_PROXY_URL: http://seeklit-nginx
       PUID: 1000
       PGID: 1000
       TZ: America/New_York
