@@ -21,7 +21,7 @@ func init() {
 					&controllers.MonitoringController{},
 				),
 				beego.NSNamespace("/config",
-					// beego.NSBefore(middlewares.JWTAuthMiddleware),
+					beego.NSBefore(middlewares.JWTAuthMiddleware),
 					beego.NSInclude(
 						&controllers.ConfigController{},
 					),
