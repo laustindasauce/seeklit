@@ -1,7 +1,7 @@
 {
   "name": "seeklit-client",
   "description": "Self-hosted book request client",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "author": "laustindasauce",
   "license": "MIT",
   "type": "module",

@@ -11,7 +11,7 @@ Seeklit uses a multi-container architecture with separate containers for the cli
 First copy the docker-compose.yml file to your server:
 
 ```bash
-curl -L -o docker-compose.yml "https://raw.githubusercontent.com/laustindasauce/seeklit/refs/heads/main/docker-compose.yml"
+curl -L -o docker-compose.yml "https://raw.githubusercontent.com/laustindasauce/seeklit/refs/heads/main/docker-compose.example.yml"
 ```
 
 Build and run the containers:
@@ -20,7 +20,7 @@ Build and run the containers:
 docker compose up -d --build
 ```
 
-#### Manual Build for Separate Containers
+#### Manual Build
 
 ```bash
 # Build both containers
@@ -97,6 +97,5 @@ For more detailed development information, see the individual README files in th
 
 ### Request Flow
 
-1. **Browser requests** → nginx:80 → client container (for static files and pages)
+1. **Browser requests** → nginx:80 → client container:3000 (for static files and pages)
 2. **API requests** → nginx:80/api → server container:8416 (for backend API calls)
-3. **Server-side rendering** → client container → nginx proxy → server container (for SSR API calls)
