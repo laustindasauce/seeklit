@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"api/helpers"
+	"api/middlewares"
 	"api/models"
 	"encoding/json"
 
@@ -21,6 +22,16 @@ type ConfigController struct {
 func (s *ConfigController) Get() {
 	sections := []string{"default", "general", "db", "metadata", "notify", "download", "smtp"}
 
+	// Get the current user from context
+	user := middlewares.GetUser(s.Ctx)
+	isAdmin := user != nil && (user.Type == "admin" || user.Type == "root")
+
+	// Define allowed keys for non-admin users (whitelist approach)
+	allowedKeysForNonAdmin := map[string][]string{
+		"metadata": {"provider"},
+		"smtp":     {"enabled"},
+	}
+
 	// Create a map to hold the configuration options
 	configMap := make(map[string]map[string]string)
 
@@ -31,7 +42,25 @@ func (s *ConfigController) Get() {
 			configMap[section] = map[string]string{"error": "Section not found or empty"}
 			continue
 		}
-		configMap[section] = values
+
+		// If user is admin, return all values; otherwise only return whitelisted keys
+		if isAdmin {
+			configMap[section] = values
+		} else {
+			// Only include whitelisted keys for non-admin users
+			filteredValues := make(map[string]string)
+			if allowedKeys, exists := allowedKeysForNonAdmin[section]; exists {
+				for _, allowedKey := range allowedKeys {
+					if value, keyExists := values[allowedKey]; keyExists {
+						filteredValues[allowedKey] = value
+					}
+				}
+			}
+			// Only add section to response if it has allowed keys
+			if len(filteredValues) > 0 {
+				configMap[section] = filteredValues
+			}
+		}
 	}
 
 	// Return the configuration as JSON
