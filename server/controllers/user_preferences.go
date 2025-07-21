@@ -102,7 +102,7 @@ func (c *UserPreferencesController) Put() {
 		prefs = &models.UserPreferences{
 			UserID:               user.ID,
 			Email:                updateData.Email,
-			NotificationsEnabled: updateData.NotificationsEnabled,
+			NotificationsEnabled: false,
 			EmailVerified:        false,
 		}
 		err = database.DB.Create(prefs).Error
@@ -110,12 +110,14 @@ func (c *UserPreferencesController) Put() {
 		// Update existing preferences
 		emailChanged := prefs.Email != updateData.Email
 		prefs.Email = updateData.Email
-		prefs.NotificationsEnabled = updateData.NotificationsEnabled
+		prefs.NotificationsEnabled = false
 
 		// Reset email verification if email changed
-		if emailChanged && updateData.Email != "" {
+		if emailChanged {
 			prefs.EmailVerified = false
 			prefs.EmailVerificationCode = generateVerificationCode()
+		} else if prefs.EmailVerified {
+			prefs.NotificationsEnabled = updateData.NotificationsEnabled
 		}
 
 		err = database.DB.Save(prefs).Error

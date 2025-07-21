@@ -26,7 +26,7 @@ interface NotificationSettingsProps {
   >;
   isLoadingPrefs: boolean;
   isSavingPrefs: boolean;
-  onSavePreferences: () => void;
+  onSavePreferences: () => Promise<void>;
 }
 
 export default function NotificationSettings({
@@ -77,6 +77,7 @@ export default function NotificationSettings({
 
   const handleSendVerification = async () => {
     if (!user || !userPreferences?.email || verificationCooldown > 0) return;
+    await onSavePreferences();
 
     setIsSendingVerification(true);
     try {
@@ -241,7 +242,11 @@ export default function NotificationSettings({
                   id="notifications-enabled"
                   checked={userPreferences?.notificationsEnabled || false}
                   onCheckedChange={handleNotificationsToggle}
-                  disabled={!userPreferences?.email || !isSmtpEnabled()}
+                  disabled={
+                    !userPreferences?.email ||
+                    !isSmtpEnabled() ||
+                    !userPreferences.emailVerified
+                  }
                   className="data-[state=unchecked]:bg-gray-300 data-[state=unchecked]:border-gray-400"
                 />
               </div>
@@ -254,7 +259,9 @@ export default function NotificationSettings({
                 <ul className="list-disc list-inside space-y-1 ml-2">
                   <li>Your book request is approved or denied</li>
                   <li>Your book request status changes</li>
-                  <li>Your requested book is available for download</li>
+                  <li>
+                    The status changes for an issue you reported on a book
+                  </li>
                 </ul>
               </div>
             )}
