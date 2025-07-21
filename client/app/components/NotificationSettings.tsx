@@ -259,7 +259,9 @@ export default function NotificationSettings({
                 <ul className="list-disc list-inside space-y-1 ml-2">
                   <li>Your book request is approved or denied</li>
                   <li>Your book request status changes</li>
-                  <li>Your requested book is available for download</li>
+                  <li>
+                    The status changes for an issue you reported on a book
+                  </li>
                 </ul>
               </div>
             )}
