@@ -242,7 +242,11 @@ export default function NotificationSettings({
                   id="notifications-enabled"
                   checked={userPreferences?.notificationsEnabled || false}
                   onCheckedChange={handleNotificationsToggle}
-                  disabled={!userPreferences?.email || !isSmtpEnabled()}
+                  disabled={
+                    !userPreferences?.email ||
+                    !isSmtpEnabled() ||
+                    !userPreferences.emailVerified
+                  }
                   className="data-[state=unchecked]:bg-gray-300 data-[state=unchecked]:border-gray-400"
                 />
               </div>
