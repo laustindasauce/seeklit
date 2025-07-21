@@ -12,7 +12,7 @@ import (
 )
 
 func SendAdminNotification(title, body string) {
-	appriseService := config.DefaultString("notify::appriseadminservice", "")
+	appriseService := config.DefaultString("notify::appriseservice", "")
 	if config.DefaultBool("notify::enabled", false) && appriseService != "" {
 		err := sendAppriseNotification(appriseService, title, body)
 		if err != nil {
@@ -38,7 +38,7 @@ func SendUserNotificationEmail(userEmail, title, body string) error {
 }
 
 func SendErrorNotification(location, info string, err error) {
-	appriseService := config.DefaultString("notify::appriseadminservice", "")
+	appriseService := config.DefaultString("notify::appriseservice", "")
 	title := "⛔☢️⛔ Seeklit application caught an error!"
 	body := fmt.Sprintf("Location: %s\nInfo: %s\nError: %v", location, info, err)
 
