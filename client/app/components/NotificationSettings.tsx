@@ -26,7 +26,7 @@ interface NotificationSettingsProps {
   >;
   isLoadingPrefs: boolean;
   isSavingPrefs: boolean;
-  onSavePreferences: () => void;
+  onSavePreferences: () => Promise<void>;
 }
 
 export default function NotificationSettings({
@@ -77,6 +77,7 @@ export default function NotificationSettings({
 
   const handleSendVerification = async () => {
     if (!user || !userPreferences?.email || verificationCooldown > 0) return;
+    await onSavePreferences();
 
     setIsSendingVerification(true);
     try {
