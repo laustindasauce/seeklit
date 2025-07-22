@@ -8,6 +8,7 @@ import {
   SquareLibrary,
   BadgeAlert,
 } from "lucide-react";
+import { getEnvVal } from "@/lib/utils";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const isIssuesDisabled =
+    getEnvVal(import.meta.env.VITE_DISABLE_ISSUES, "false") === "true";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,11 +62,13 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
               <SquareLibrary className="mr-2 h-4 w-4" /> Requests
             </a>
           </Button>
-          <Button variant="ghost" className="w-full justify-start" asChild>
-            <a href="/issues">
-              <BadgeAlert className="mr-2 h-4 w-4" /> Issues
-            </a>
-          </Button>
+          {!isIssuesDisabled && (
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <a href="/issues">
+                <BadgeAlert className="mr-2 h-4 w-4" /> Issues
+              </a>
+            </Button>
+          )}
           <Button variant="ghost" className="w-full justify-start" asChild>
             <a href="/settings">
               <Settings className="mr-2 h-4 w-4" /> Settings

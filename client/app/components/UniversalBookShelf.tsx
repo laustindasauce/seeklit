@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Info, BookOpen, BadgeAlert, BookHeadphones } from "lucide-react";
 import RequestPrompt from "./RequestPrompt";
 import IssuePrompt from "./IssuePrompt";
+import { getEnvVal } from "@/lib/utils";
 
 // A standardized interface for book data from any source.
 export interface UniversalBook {
@@ -45,6 +46,8 @@ export default function UniversalBookShelf({
   const [selectedBook, setSelectedBook] = useState<NewBookRequest | null>(null);
   const [bookDescription, setBookDescription] = useState<string | null>(null);
   const [newIssue, setNewIssue] = useState<NewIssue | null>(null);
+  const isIssuesDisabled =
+    getEnvVal(import.meta.env.VITE_DISABLE_ISSUES, "false") === "true";
 
   const handleRequestClick = (book: UniversalBook) => {
     setSelectedBook({
@@ -125,18 +128,20 @@ export default function UniversalBookShelf({
                     {/* ABS Shelf Buttons */}
                     {shelfType === "ABS" && (
                       <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full border border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-black"
-                          onClick={() => handleNewIssueClick(book)}
-                        >
-                          <BadgeAlert
-                            className="w-4 h-4 mr-2"
-                            aria-hidden="true"
-                          />
-                          <span>Report Issue</span>
-                        </Button>
+                        {!isIssuesDisabled && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full border border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-black"
+                            onClick={() => handleNewIssueClick(book)}
+                          >
+                            <BadgeAlert
+                              className="w-4 h-4 mr-2"
+                              aria-hidden="true"
+                            />
+                            <span>Report Issue</span>
+                          </Button>
+                        )}
                         <Button
                           variant="default"
                           size="sm"
@@ -223,7 +228,7 @@ export default function UniversalBookShelf({
         />
       )}
 
-      {shelfType === "ABS" && !!newIssue && absBaseUrl && (
+      {shelfType === "ABS" && !!newIssue && absBaseUrl && !isIssuesDisabled && (
         <IssuePrompt
           newIssue={newIssue}
           handleCloseModal={handleCloseModal}
