@@ -47,7 +47,7 @@ chown -R seeklit:seeklit /home/seeklit/.local /home/seeklit/.config /home/seekli
 # Set default values for environment variables
 SEEKLIT_ABS_URL=${SEEKLIT_ABS_URL:-http://audiobookshelf:80}
 SEEKLIT_ABS_EXTERNAL_URL=${SEEKLIT_ABS_EXTERNAL_URL:-http://localhost:13378}
-SEEKLIT_PROXY_URL=${SEEKLIT_PROXY_URL:-http://seeklit-nginx:80}
+SEEKLIT_DISABLE_ISSUES=${SEEKLIT_DISABLE_ISSUES:-false}
 
 # Handle timezone configuration
 TZ=${TZ:-America/New_York}
@@ -68,7 +68,8 @@ echo "PGID=$PGID"
 echo "SEEKLIT_ABS_URL=$SEEKLIT_ABS_URL"
 echo "SEEKLIT_ABS_EXTERNAL_URL=$SEEKLIT_ABS_EXTERNAL_URL"
 echo "SEEKLIT_ADMIN_EMAIL=$SEEKLIT_ADMIN_EMAIL"
-echo "SEEKLIT_PROXY_URL=$SEEKLIT_PROXY_URL"
+echo "SEEKLIT_DISABLE_ISSUES=$SEEKLIT_DISABLE_ISSUES"
+
 
 # Replace baked environment variables in built Remix files
 if [ ! -z "$SEEKLIT_ABS_URL" ] || [ ! -z "$SEEKLIT_ABS_EXTERNAL_URL" ] || [ ! -z "$SEEKLIT_ADMIN_EMAIL" ]; then
@@ -85,6 +86,9 @@ if [ ! -z "$SEEKLIT_ABS_URL" ] || [ ! -z "$SEEKLIT_ABS_EXTERNAL_URL" ] || [ ! -z
         fi
         if [ ! -z "$SEEKLIT_ADMIN_EMAIL" ]; then
             sed -i "s|BAKED_SEEKLIT_ADMIN_EMAIL|$SEEKLIT_ADMIN_EMAIL|g" "$file"
+        fi
+        if [ ! -z "$SEEKLIT_DISABLE_ISSUES" ]; then
+            sed -i "s|BAKED_SEEKLIT_DISABLE_ISSUES|$SEEKLIT_DISABLE_ISSUES|g" "$file"
         fi
     done
 fi

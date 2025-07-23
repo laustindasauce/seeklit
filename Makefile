@@ -1,4 +1,4 @@
-.PHONY: all dev-setup dev-start dev-stop
+.PHONY: all dev-setup dev-stop
 
 all: setup-data-dir setup-conf-dir install-packages install-client install-server
 
@@ -33,6 +33,7 @@ install-client:
 	@echo 'VITE_ABS_EXTERNAL_URL="http://localhost:13378"' >> client/.env
 	@echo 'VITE_ADMIN_EMAIL="dev@example.com"' >> client/.env
 	@echo 'VITE_SEEKLIT_VERSION="dev"' >> client/.env
+	@echo 'VITE_DISABLE_ISSUES="false"' >> client/.env
 
 install-server:
 	@echo "Installing all server dependencies"
@@ -63,7 +64,7 @@ copy-nginx-config:
 # Development setup for combined nginx approach
 dev-setup: setup-data-dir setup-conf-dir install-client install-server copy-nginx-config create-dev-script
 	@echo "Setting up combined development environment..."
-	@echo "Setup complete. Run 'make dev-start' to start the development environment."
+	@echo "Setup complete. Run './run_dev.sh' to start the development environment."
 
 # Docker targets for separate containers
 build-server:
