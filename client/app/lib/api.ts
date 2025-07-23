@@ -3,10 +3,17 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { getEnvVal } from "./utils";
 
 const getApiClient = (baseUrl: string) => {
+  // Use environment variable if available, otherwise use provided baseUrl
   baseUrl = getEnvVal(process.env.SEEKLIT_ABS_URL, baseUrl);
+
+  // Ensure baseUrl ends with a slash if it's not empty
+  if (baseUrl && !baseUrl.endsWith("/")) {
+    baseUrl += "/";
+  }
+
   return axios.create({
     baseURL: baseUrl,
-    timeout: 5000,
+    timeout: 10000, // Increased timeout for better reliability
     headers: {
       "Content-Type": "application/json",
     },
@@ -24,6 +31,16 @@ const login = async (baseUrl: string, username: string, password: string) => {
         password,
       }
     );
+
+    // Ensure we have a valid user object with an access token
+    if (
+      !response.data ||
+      !response.data.user ||
+      !response.data.user.accessToken
+    ) {
+      throw new Error("Invalid response from authentication server");
+    }
+
     return response.data;
   } catch (error) {
     console.error("Login error:", error);

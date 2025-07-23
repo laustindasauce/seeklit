@@ -96,3 +96,21 @@ type UserPreferences = {
   createdAt: string;
   updatedAt: string;
 };
+
+type AuthInfo = {
+  method: "audiobookshelf" | "oidc" | "both";
+  available_methods: {
+    audiobookshelf: boolean;
+    oidc: boolean;
+  };
+  oidc?: {
+    login_url: string;
+    callback_url: string;
+    provider_name?: string; // Name of the OIDC provider (e.g., "Keycloak", "Auth0", etc.)
+  };
+};
+
+type UserInfoResponse = {
+  user: User;
+  auth_source: "audiobookshelf" | "oidc";
+};
