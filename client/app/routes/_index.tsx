@@ -13,7 +13,6 @@ import {
   transformGoogleBook,
   transformHardcoverBook,
   transformOpenLibraryBook,
-  transformReadarrBook,
   useDebounce,
   useOptionalUser,
 } from "@/utils";
@@ -127,16 +126,6 @@ export default function IndexHandler() {
           const data = await localApi.hardcoverSearch(token, query);
           externalData = (data.search_results as HardcoverBook[]).map(
             transformHardcoverBook
-          );
-          absData = (data.abs_results as BookItem[]).map((book) =>
-            transformAbsBook(book, absBaseUrl)
-          );
-          break;
-        }
-        case "READARR": {
-          const data = await localApi.readarrSearch(token, query);
-          externalData = (data.search_results as ReadarrBook[]).map(
-            transformReadarrBook
           );
           absData = (data.abs_results as BookItem[]).map((book) =>
             transformAbsBook(book, absBaseUrl)

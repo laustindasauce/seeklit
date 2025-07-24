@@ -86,26 +86,6 @@ const hardcoverSearch = async (token: string, query: string) => {
   }
 };
 
-// Function to handle Readarr er book search
-const readarrSearch = async (token: string, query: string) => {
-  try {
-    const apiClient: AxiosInstance = getApiClient();
-    const response: AxiosResponse<LocalSearchResponse> = await apiClient.post(
-      "/search/readarr",
-      { query },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Search error:", error);
-    throw error;
-  }
-};
-
 // Function to retrieve server settings
 const getServerSettings = async () => {
   try {
@@ -523,7 +503,6 @@ export const localApi = {
   initiateOIDCLogin,
   oidcLogout,
   openlibSearch,
-  readarrSearch,
   sendEmailVerification,
   updateIssue,
   updateRequest,

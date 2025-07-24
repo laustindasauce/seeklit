@@ -108,15 +108,3 @@ export const transformHardcoverBook = (book: HardcoverBook): UniversalBook => ({
   description: book.description || null,
   isAudiobook: false,
 });
-
-export const transformReadarrBook = (book: ReadarrBook): UniversalBook => ({
-  id: `READARR_${book.id}`,
-  title: book.title,
-  author: book.authorTitle,
-  coverUrl: book.remoteCover || null,
-  infoLink: null,
-  source: "READARR",
-  source_id: book.id.toString(),
-  description: book.overview || null,
-  isAudiobook: false,
-});
