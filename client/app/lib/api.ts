@@ -89,7 +89,7 @@ const getUsers = async (baseUrl: string, token: string) => {
     );
     return response.data;
   } catch (error) {
-    console.error("Get user error:", error);
+    console.error("Unable to get users");
     throw error;
   }
 };

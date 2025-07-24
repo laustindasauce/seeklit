@@ -47,6 +47,7 @@ chown -R seeklit:seeklit /home/seeklit/.local /home/seeklit/.config /home/seekli
 # Set default values for environment variables
 SEEKLIT_ABS_URL=${SEEKLIT_ABS_URL:-http://audiobookshelf:80}
 SEEKLIT_ABS_EXTERNAL_URL=${SEEKLIT_ABS_EXTERNAL_URL:-http://localhost:13378}
+SEEKLIT_SERVER_URL=${SEEKLIT_SERVER_URL:-http://seeklit-server:8416}
 SEEKLIT_DISABLE_ISSUES=${SEEKLIT_DISABLE_ISSUES:-false}
 
 # Handle timezone configuration

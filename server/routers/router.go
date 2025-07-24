@@ -64,6 +64,12 @@ func init() {
 					),
 				),
 			),
+			beego.NSNamespace("/users",
+				beego.NSBefore(middlewares.AuthMiddleware),
+				beego.NSInclude(
+					&controllers.UserController{},
+				),
+			),
 		),
 	)
 	beego.AddNamespace(ns)

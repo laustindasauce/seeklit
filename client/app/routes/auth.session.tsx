@@ -1,11 +1,11 @@
-import { ActionFunction, ActionFunctionArgs, json } from "@remix-run/node";
+import { ActionFunction, ActionFunctionArgs } from "@remix-run/node";
 import { createUserSessionResponse } from "@/session.server";
 
 export const action: ActionFunction = async ({
   request,
 }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
   try {
@@ -13,7 +13,7 @@ export const action: ActionFunction = async ({
     const { token } = body;
 
     if (!token) {
-      return json({ error: "Token is required" }, { status: 400 });
+      return Response.json({ error: "Token is required" }, { status: 400 });
     }
 
     // Create session with the provided token
@@ -23,6 +23,9 @@ export const action: ActionFunction = async ({
     });
   } catch (error) {
     console.error("Failed to create session:", error);
-    return json({ error: "Failed to create session" }, { status: 500 });
+    return Response.json(
+      { error: "Failed to create session" },
+      { status: 500 }
+    );
   }
 };

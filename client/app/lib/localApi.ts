@@ -485,6 +485,25 @@ const oidcLogout = async () => {
   }
 };
 
+// Function to get users (admin/root only)
+const getUsers = async (token: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<UsersResponse> = await apiClient.get(
+      "/users",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Get users error:", error);
+    throw error;
+  }
+};
+
 export const localApi = {
   createNewIssue,
   createNewRequest,
@@ -498,6 +517,7 @@ export const localApi = {
   getServerSettings,
   getUserInfo,
   getUserPreferences,
+  getUsers,
   googleSearch,
   hardcoverSearch,
   initiateOIDCLogin,

@@ -7,13 +7,20 @@ import { Loader2, Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { redirect, useLoaderData } from "@remix-run/react";
 import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { getUserToken, logout } from "@/session.server";
-import { useDebounce, useOptionalUser } from "@/utils";
+import { getUserToken } from "@/session.server";
+import {
+  transformAbsBook,
+  transformGoogleBook,
+  transformHardcoverBook,
+  transformOpenLibraryBook,
+  transformReadarrBook,
+  useDebounce,
+  useOptionalUser,
+} from "@/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { localApi } from "@/lib/localApi";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
 import { getEnvVal } from "@/lib/utils";
 import UniversalBookShelf, {
   UniversalBook,
@@ -22,80 +29,8 @@ import UniversalBookShelf, {
 // Define the data type for the loader
 type LoaderData = {
   userToken: string;
-  users: User[];
   absBaseUrl: string;
 };
-
-const transformAbsBook = (
-  book: BookItem,
-  absBaseUrl: string
-): UniversalBook => ({
-  id: `ABS_${book.libraryItem.id}`,
-  title: book.libraryItem.media.metadata.title,
-  author: book.libraryItem.media.metadata.authorName,
-  coverUrl: `${absBaseUrl}/api/items/${book.libraryItem.id}/cover`,
-  infoLink: `${absBaseUrl}/item/${book.libraryItem.id}`,
-  source: "ABS",
-  source_id: book.libraryItem.id,
-  isAudiobook: book.libraryItem.media.numAudioFiles > 0,
-});
-
-const transformGoogleBook = (book: GoogleBook): UniversalBook => ({
-  id: `GOOGLE_${book.id}`,
-  title: book.volumeInfo.title,
-  author: book.volumeInfo.authors?.join(", ") || null,
-  coverUrl:
-    book.volumeInfo.imageLinks?.thumbnail?.replace("http:", "https:") || null,
-  infoLink: book.volumeInfo.infoLink || null,
-  source: "GOOGLE",
-  source_id: book.id,
-  isbn_10:
-    book.volumeInfo.industryIdentifiers?.find((id) => id.type === "ISBN_10")
-      ?.identifier || null,
-  isbn_13:
-    book.volumeInfo.industryIdentifiers?.find((id) => id.type === "ISBN_13")
-      ?.identifier || null,
-  description: book.volumeInfo.description || null,
-  isAudiobook: false,
-});
-
-const transformOpenLibraryBook = (book: OpenLibraryBook): UniversalBook => ({
-  id: `OPENLIBRARY_${book.info_link?.split("/").pop() || book.title}`,
-  title: book.title,
-  author: book.author_name?.join(", ") || null,
-  coverUrl: book.cover_images?.medium || null,
-  infoLink: book.info_link || null,
-  source: "OPENLIBRARY",
-  source_id: book.info_link?.split("/").pop() || "none",
-  description: null,
-  isAudiobook: false,
-});
-
-const transformHardcoverBook = (book: HardcoverBook): UniversalBook => ({
-  id: `HARDCOVER_${book.id}`,
-  title: book.title,
-  author: book.contributions?.[0]?.author.name || null,
-  coverUrl: book.images?.[0]?.url || null,
-  infoLink: `https://hardcover.app/books/${book.slug}`,
-  source: "HARDCOVER",
-  source_id: book.id.toString(),
-  isbn_10: book.default_physical_edition?.isbn_10 || null,
-  isbn_13: book.default_physical_edition?.isbn_13 || null,
-  description: book.description || null,
-  isAudiobook: false,
-});
-
-const transformReadarrBook = (book: ReadarrBook): UniversalBook => ({
-  id: `READARR_${book.id}`,
-  title: book.title,
-  author: book.authorTitle,
-  coverUrl: book.remoteCover || null,
-  infoLink: null,
-  source: "READARR",
-  source_id: book.id.toString(),
-  description: book.overview || null,
-  isAudiobook: false,
-});
 
 // Define the loader for user authentication.
 export const loader: LoaderFunction = async ({
@@ -126,23 +61,15 @@ export const loader: LoaderFunction = async ({
 
   const absBaseUrl = getEnvVal(process.env.SEEKLIT_ABS_EXTERNAL_URL, origin);
 
-  try {
-    const usersRes = await api.getUsers(origin, userToken);
-
-    return Response.json({
-      userToken,
-      users: usersRes.users,
-      absBaseUrl,
-    });
-  } catch (error) {
-    // User isn't admin or there's an API error
-    return Response.json({ userToken, users: [], absBaseUrl });
-  }
+  return Response.json({
+    userToken,
+    absBaseUrl,
+  });
 };
 
 export default function IndexHandler() {
   const user = useOptionalUser();
-  const { users, absBaseUrl } = useLoaderData<LoaderData>();
+  const { absBaseUrl } = useLoaderData<LoaderData>();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -150,6 +77,7 @@ export default function IndexHandler() {
   const [serverSettings, setServerSettings] = useState<LocalServerSettings>();
   const [recentBooks, setRecentBooks] = useState<BookItem[]>([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
 
   const [absSearchResults, setAbsSearchResults] = useState<UniversalBook[]>([]);
   const [externalSearchResults, setExternalSearchResults] = useState<
@@ -273,6 +201,24 @@ export default function IndexHandler() {
       })
       .finally(() => {
         setIsLoadingRecent(false);
+      });
+  }, [user]);
+
+  // Get users on load (only for admin/root users)
+  useEffect(() => {
+    if (!user || (user.type !== "admin" && user.type !== "root")) {
+      setUsers([]);
+      return;
+    }
+
+    localApi
+      .getUsers(user.accessToken)
+      .then((res) => {
+        setUsers(res.users);
+      })
+      .catch((err) => {
+        console.error("Error fetching users:", err);
+        setUsers([]);
       });
   }, [user]);
 

@@ -25,3 +25,7 @@ type UserPermissions struct {
 	AccessAllTags         bool `json:"accessAllTags"`
 	AccessExplicitContent bool `json:"accessExplicitContent"`
 }
+
+func (u *User) IsAdmin() bool {
+	return u.Type == "admin" || u.Type == "root"
+}
