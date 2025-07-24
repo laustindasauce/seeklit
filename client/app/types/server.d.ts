@@ -1,6 +1,6 @@
 //
 type LocalServerSettings = {
-  metadata_provider: "GOOGLE" | "OPENLIBRARY" | "HARDCOVER" | "READARR";
+  metadata_provider: "GOOGLE" | "OPENLIBRARY" | "HARDCOVER";
   indexer_enabled: boolean;
   zlibrary_enabled: boolean;
   cwa_enabled: boolean;
@@ -44,11 +44,7 @@ type EditBookRequest = {
 };
 
 type LocalSearchResponse = {
-  search_results:
-    | GoogleBook[]
-    | OpenLibraryResponse
-    | HardcoverBook[]
-    | ReadarrBook[];
+  search_results: GoogleBook[] | OpenLibraryResponse | HardcoverBook[];
   abs_results: BookItem[];
 };
 

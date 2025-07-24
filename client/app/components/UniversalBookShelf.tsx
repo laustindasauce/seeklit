@@ -15,7 +15,7 @@ export interface UniversalBook {
   author: string | null;
   coverUrl: string | null;
   infoLink: string | null;
-  source: "ABS" | "GOOGLE" | "OPENLIBRARY" | "HARDCOVER" | "READARR";
+  source: "ABS" | "GOOGLE" | "OPENLIBRARY" | "HARDCOVER";
   source_id: string; // The ID from the original source
   isbn_10?: string | null;
   isbn_13?: string | null;
