@@ -83,7 +83,8 @@ func (s *SearchController) GoogleSearch() {
 		return
 	}
 
-	absResults, err := handleAbsSearch(user.Token, search.Query)
+	absToken := config.DefaultString("general::audiobookshelfapikey", user.Token)
+	absResults, err := handleAbsSearch(absToken, search.Query)
 	if err != nil {
 		logs.Warn("Unable to complete audiobookshelf search.")
 		absResults = []any{}
@@ -158,7 +159,8 @@ func (s *SearchController) OpenLibrarySearch() {
 		data.Docs[id].SetCoverImage()
 	}
 
-	absResults, err := handleAbsSearch(user.Token, search.Query)
+	absToken := config.DefaultString("general::audiobookshelfapikey", user.Token)
+	absResults, err := handleAbsSearch(absToken, search.Query)
 	if err != nil {
 		logs.Warn("Unable to complete audiobookshelf search.")
 		absResults = []any{}
@@ -313,7 +315,8 @@ func (s *SearchController) HardcoverSearch() {
 		}
 	}
 
-	absResults, err := handleAbsSearch(user.Token, search.Query)
+	absToken := config.DefaultString("general::audiobookshelfapikey", user.Token)
+	absResults, err := handleAbsSearch(absToken, search.Query)
 	if err != nil {
 		logs.Warn("Unable to complete audiobookshelf search.")
 		absResults = []any{}
@@ -337,7 +340,36 @@ func (s *SearchController) HardcoverSearch() {
 func (s *SearchController) PersonalizedSearch() {
 	user := middlewares.GetUser(s.Ctx)
 
-	absResults, err := handleAbsPersonalizedSearch(user.Token)
+	// Get auth method from config with default fallback
+	authMethod := config.DefaultString("auth::method", "audiobookshelf")
+
+	var token string
+
+	// Determine which token to use based on auth method
+	switch authMethod {
+	case "oidc":
+		absApiKey := config.DefaultString("general::audiobookshelfapikey", "")
+		// For OIDC-only auth, fail if api key is empty
+		if absApiKey == "" {
+			logs.Critical("audiobookshelfapikey is empty and auth method is OIDC. Unable to perform personalized search.")
+			s.Ctx.Output.SetStatus(http.StatusUnauthorized)
+			s.Data["json"] = map[string]string{"error": "Audiobookshelf API Key required for recent books."}
+			s.ServeJSON()
+			return
+		}
+		token = absApiKey
+	case "audiobookshelf", "both":
+		// Try API key first, fallback to user token
+		token = config.DefaultString("general::audiobookshelfapikey", user.Token)
+	default:
+		logs.Critical("Unknown auth method: %s. Unable to perform personalized search.", authMethod)
+		s.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		s.Data["json"] = map[string]string{"error": "Invalid authentication configuration."}
+		s.ServeJSON()
+		return
+	}
+
+	absResults, err := handleAbsPersonalizedSearch(token)
 	if err != nil {
 		logs.Warn("Unable to complete audiobookshelf personalized search. %v", err)
 		absResults = []any{}

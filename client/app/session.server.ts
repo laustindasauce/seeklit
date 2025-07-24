@@ -18,14 +18,41 @@ const USER_SESSION_KEY = "userToken";
 export async function createUserSession({
   request,
   userToken,
+  redirectTo = "/",
+}: {
+  request: Request;
+  userToken: string;
+  redirectTo?: string;
+}) {
+  console.log("Creating user session with token:", !!userToken);
+  const session = await getSession(request);
+  session.set(USER_SESSION_KEY, userToken);
+
+  const cookieHeader = await sessionStorage.commitSession(session, {
+    maxAge: 60 * 60 * 24 * 7, // 7 days,
+  });
+
+  console.log("Session cookie created, redirecting to:", redirectTo);
+
+  return redirect(redirectTo, {
+    headers: {
+      "Set-Cookie": cookieHeader,
+    },
+  });
+}
+
+export async function createUserSessionResponse({
+  request,
+  userToken,
 }: {
   request: Request;
   userToken: string;
 }) {
   const session = await getSession(request);
   session.set(USER_SESSION_KEY, userToken);
-  return redirect("/", {
+  return new Response(JSON.stringify({ success: true }), {
     headers: {
+      "Content-Type": "application/json",
       "Set-Cookie": await sessionStorage.commitSession(session, {
         maxAge: 60 * 60 * 24 * 7, // 7 days,
       }),
@@ -48,11 +75,23 @@ export async function getUserToken(
 
 export async function getUser(request: Request) {
   const userToken = await getUserToken(request);
-  if (userToken === undefined) return null;
+  console.log("getUser called, userToken exists:", !!userToken);
+
+  if (userToken === undefined) {
+    console.log("No user token found in session");
+    return null;
+  }
 
   try {
     // First try to get user info from our server's unified auth endpoint
+    console.log("Attempting to get user info from server with token");
     const userInfo = await localApi.getUserInfo(userToken);
+    console.log("getUserInfo response:", {
+      hasUserInfo: !!userInfo,
+      hasUser: !!(userInfo && userInfo.user),
+      authSource: userInfo?.auth_source,
+    });
+
     if (userInfo && userInfo.user) {
       // Ensure accessToken is available
       if (!userInfo.user.accessToken && userInfo.user.token) {
@@ -61,10 +100,14 @@ export async function getUser(request: Request) {
       // Add auth_source to the user object
       userInfo.user.auth_source = userInfo.auth_source;
 
+      console.debug(`User type: ${userInfo.user.type}`);
+
       // Log successful authentication
       console.log(`User authenticated via ${userInfo.auth_source}`);
 
       return userInfo.user;
+    } else {
+      console.log("getUserInfo returned invalid response");
     }
   } catch (error) {
     console.error("Failed to get user info from server:", error);
@@ -99,7 +142,10 @@ export async function getUser(request: Request) {
   }
 
   // If we get here, authentication failed
-  console.error("Authentication failed completely, logging out");
+  console.error(
+    "Authentication failed completely, logging out. UserToken was:",
+    !!userToken
+  );
   throw await logout(request);
 }
 

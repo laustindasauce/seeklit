@@ -106,12 +106,22 @@ export const loader: LoaderFunction = async ({
 
   const clientOrigin = request.headers.get("referer") || "";
   let origin = "";
-  try {
-    const url = new URL(clientOrigin);
-    origin = url.origin;
-  } catch (error) {
-    console.error("Invalid URL in referer:", clientOrigin);
-    return await logout(request);
+
+  // Try to get origin from referer, but fall back to request URL if not available
+  if (clientOrigin) {
+    try {
+      const url = new URL(clientOrigin);
+      origin = url.origin;
+    } catch (error) {
+      console.error("Invalid URL in referer:", clientOrigin);
+      // Fall back to request URL origin instead of logging out
+      const requestUrl = new URL(request.url);
+      origin = requestUrl.origin;
+    }
+  } else {
+    // No referer header, use request URL origin
+    const requestUrl = new URL(request.url);
+    origin = requestUrl.origin;
   }
 
   const absBaseUrl = getEnvVal(process.env.SEEKLIT_ABS_EXTERNAL_URL, origin);
@@ -125,8 +135,7 @@ export const loader: LoaderFunction = async ({
       absBaseUrl,
     });
   } catch (error) {
-    console.error(error);
-    // User isn't admin
+    // User isn't admin or there's an API error
     return Response.json({ userToken, users: [], absBaseUrl });
   }
 };

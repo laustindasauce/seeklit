@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/pagination";
 import { Clock, Edit, Info, Loader2Icon, Menu, Trash } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
-import { useOptionalUser } from "@/utils";
+import { isAdmin, useOptionalUser } from "@/utils";
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
 import { localApi } from "@/lib/localApi";
@@ -265,7 +265,7 @@ const Issues = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Cover</TableHead>
-                      {user?.type === "root" && <TableHead>Creator</TableHead>}
+                      {isAdmin(user) && <TableHead>Creator</TableHead>}
                       <TableHead>Title</TableHead>
                       <TableHead>Severity</TableHead>
                       <TableHead>Status</TableHead>
@@ -284,7 +284,7 @@ const Issues = () => {
                             className="w-[50px] h-[75px] object-cover rounded-md"
                           />
                         </TableCell>
-                        {user?.type === "root" && (
+                        {isAdmin(user) && (
                           <TableCell className="font-medium">
                             {issue.creator_username}
                           </TableCell>
@@ -314,7 +314,7 @@ const Issues = () => {
                               View details for {issue.book_title}
                             </span>
                           </Button>
-                          {user?.type === "root" && (
+                          {isAdmin(user) && (
                             <Button
                               variant="ghost"
                               size="icon"

@@ -71,6 +71,8 @@ func (r *RequestController) Post() {
 func (r *RequestController) GetAll() {
 	user := middlewares.GetUser(r.Ctx)
 
+	logs.Info("User info: %v\n", user)
+
 	limit, err := r.GetInt("limit", 20)
 	if err != nil {
 		limit = 20

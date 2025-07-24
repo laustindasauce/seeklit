@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"strings"
 
 	"github.com/beego/beego/v2/core/config"
 	"github.com/beego/beego/v2/core/logs"
@@ -236,6 +237,41 @@ func (c *AuthController) Callback() {
 		}
 	}
 
+	// Determine user type based on admin permissions (same logic as middleware)
+	userType := "user"
+
+	// Check for admin roles/groups (same logic as in middlewares/oidc.go)
+	adminRoles := []string{"admin", "administrator", "seeklit-admin"}
+	adminGroups := []string{"admin", "administrators", "seeklit-admin"}
+
+	// Check roles first
+	for _, role := range claims.Roles {
+		for _, adminRole := range adminRoles {
+			if strings.EqualFold(role, adminRole) {
+				userType = "admin"
+				break
+			}
+		}
+		if userType == "admin" {
+			break
+		}
+	}
+
+	// Check groups if not already admin
+	if userType != "admin" {
+		for _, group := range claims.Groups {
+			for _, adminGroup := range adminGroups {
+				if strings.EqualFold(group, adminGroup) {
+					userType = "admin"
+					break
+				}
+			}
+			if userType == "admin" {
+				break
+			}
+		}
+	}
+
 	// Store user info in session
 	userInfo := map[string]interface{}{
 		"id":       claims.Sub,
@@ -244,14 +280,27 @@ func (c *AuthController) Callback() {
 		"name":     claims.Name,
 		"groups":   claims.Groups,
 		"roles":    claims.Roles,
+		"type":     userType,
 	}
+
+	logs.Debug("OIDC callback - storing user info in session: user=%s, type=%s, roles=%v, groups=%v",
+		getPreferredUsername(claims), userType, claims.Roles, claims.Groups)
+
 	err = sessionHelper.Set("user_info", userInfo)
 	if err != nil {
 		logs.Error("Failed to store user info in session: %v", err)
 	}
 
-	// Redirect to frontend auth callback route (same domain)
-	redirectURL := "/auth/callback?success=true"
+	// Create a session token that matches the expected format
+	// Use the ID token as the session token for consistency
+	sessionToken := rawIDToken
+	err = sessionHelper.Set("session_token", sessionToken)
+	if err != nil {
+		logs.Error("Failed to store session token: %v", err)
+	}
+
+	// Redirect to frontend auth callback route with token parameter
+	redirectURL := "/auth/callback?success=true&token=" + sessionToken
 
 	logs.Info("Redirecting to frontend: %s", redirectURL)
 	c.Redirect(redirectURL, http.StatusFound)
@@ -289,10 +338,12 @@ func (c *AuthController) UserInfo() {
 		return
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"user":        user,
 		"auth_source": authSource,
 	}
+
+	logs.Debug("User from user info: %v\n", user)
 
 	c.Data["json"] = response
 	c.ServeJSON()
@@ -310,6 +361,7 @@ func (c *AuthController) GetAuthTokens() {
 	accessToken, hasAccess := sessionHelper.Get("access_token")
 	idToken, hasID := sessionHelper.Get("id_token")
 	userInfo, hasUser := sessionHelper.Get("user_info")
+	sessionToken, hasSession := sessionHelper.Get("session_token")
 
 	if !hasAccess || !hasID || !hasUser {
 		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
@@ -321,11 +373,42 @@ func (c *AuthController) GetAuthTokens() {
 	// Get refresh token if it exists
 	refreshToken, _ := sessionHelper.Get("refresh_token")
 
+	// Use session token if available, otherwise fall back to ID token
+	mainToken := idToken
+	if hasSession && sessionToken != nil {
+		mainToken = sessionToken
+	}
+
+	// Convert accessToken to string for use in response
+	accessTokenStr, _ := accessToken.(string)
+
+	// Format response to match what the client expects (similar to Audiobookshelf format)
+	userInfoMap, ok := userInfo.(map[string]interface{})
+	if !ok {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = map[string]string{"error": "Invalid user info format"}
+		c.ServeJSON()
+		return
+	}
+
+	// Create user object with token field that client expects
+	user := map[string]interface{}{
+		"id":           userInfoMap["id"],
+		"username":     userInfoMap["username"],
+		"email":        userInfoMap["email"],
+		"name":         userInfoMap["name"],
+		"groups":       userInfoMap["groups"],
+		"roles":        userInfoMap["roles"],
+		"type":         userInfoMap["type"], // Include user type for admin detection
+		"token":        mainToken,           // Use session token or ID token as main token
+		"accessToken":  accessTokenStr,      // Provide the actual access token
+		"refreshToken": refreshToken,        // And refresh token if available
+		"auth_source":  "oidc",
+	}
+
 	response := map[string]interface{}{
-		"access_token":  accessToken,
-		"id_token":      idToken,
-		"refresh_token": refreshToken,
-		"user":          userInfo,
+		"user":   user,
+		"cookie": mainToken, // Add cookie field to match Audiobookshelf response format
 	}
 
 	// Clear tokens from session after retrieval (optional - depends on your security requirements)

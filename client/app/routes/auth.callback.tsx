@@ -18,6 +18,21 @@ export const loader: LoaderFunction = async ({
 
   // If this is a successful callback, try to create a session
   if (success === "true") {
+    // Check if we have a token in the URL first
+    const urlToken = url.searchParams.get("token");
+    if (urlToken) {
+      console.log("Token found in URL, creating session from server-side");
+      try {
+        return await createUserSession({
+          request,
+          userToken: urlToken,
+        });
+      } catch (error) {
+        console.error("Failed to create session from URL token:", error);
+      }
+    }
+
+    // Fallback: try to get tokens from the server session
     try {
       // Determine the server URL for SSR
       const serverUrl = process.env.SEEKLIT_SERVER_URL || url.origin;
@@ -31,12 +46,17 @@ export const loader: LoaderFunction = async ({
         },
       });
 
+      console.log("Tokens response status: ", response.status);
+
       if (response.ok) {
         const data = await response.json();
-        const token = data.id_token;
+        // Use cookie field first (matches Audiobookshelf format), then fall back to ID token
+        const token = data.cookie || data.id_token;
+
+        console.log("Token retrieved from session: ", !!token);
 
         if (token) {
-          // Create Remix session with the ID token
+          // Create Remix session with the token
           return await createUserSession({
             request,
             userToken: token,
@@ -86,6 +106,38 @@ export default function OIDCCallback() {
             2000
           );
           return;
+        }
+
+        // Check if we have a token in the URL (from server redirect)
+        const urlToken = searchParams.get("token");
+        if (urlToken) {
+          console.log("Token found in URL, creating session directly");
+          setStatus("Creating session...");
+
+          // Create session with the token from URL
+          try {
+            const response = await fetch("/auth/session", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ token: urlToken }),
+              credentials: "include",
+            });
+
+            if (response.ok) {
+              console.log("Session created successfully");
+              setStatus("Authentication successful! Redirecting...");
+              setTimeout(() => navigate("/"), 1000);
+              return;
+            } else {
+              console.error("Failed to create session with URL token");
+              // Fall through to token retrieval method
+            }
+          } catch (error) {
+            console.error("Error creating session with URL token:", error);
+            // Fall through to token retrieval method
+          }
         }
 
         setStatus("Verifying authentication...");
@@ -141,11 +193,12 @@ export default function OIDCCallback() {
               userInfo: data.user,
             });
 
-            // Use the ID token specifically for OIDC authentication
-            const token = data.id_token;
+            // Use the cookie field first (matches Audiobookshelf format), then fall back to ID token
+            const token = data.cookie || data.id_token;
 
             if (!token) {
-              const errorMsg = "No ID token received from OIDC provider";
+              const errorMsg =
+                "No authentication token received from OIDC provider";
               console.error(errorMsg);
               setError(errorMsg);
               setTimeout(

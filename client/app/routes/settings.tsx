@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { localApi } from "@/lib/localApi";
 import { getEnvVal } from "@/lib/utils";
 import { getUserToken } from "@/session.server";
-import { useOptionalUser } from "@/utils";
+import { isAdmin, useOptionalUser } from "@/utils";
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { ConstructionIcon, InfoIcon, MenuIcon } from "lucide-react";
 import React from "react";
@@ -212,7 +212,7 @@ export default function SettingsPage() {
               <TabsList>
                 <TabsTrigger value="account">Account</TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                {user?.type === "root" && (
+                {isAdmin(user) && (
                   <TabsTrigger value="admin">Admin</TabsTrigger>
                 )}
                 {/* <TabsTrigger value="privacy">Privacy</TabsTrigger> */}
@@ -369,12 +369,12 @@ export default function SettingsPage() {
                   </CardFooter>
                 </Card>
               </TabsContent>
-              {user?.type === "root" && (
+              {isAdmin(user) && (
                 <TabsContent value="admin">
                   <AdminConfiguration
                     config={config}
                     setConfig={setConfig}
-                    userToken={user.accessToken}
+                    userToken={user?.accessToken || ""}
                   />
                 </TabsContent>
               )}

@@ -124,20 +124,32 @@ func validateOIDCTokenAndGetUser(tokenString string) (*models.User, error) {
 		return nil, fmt.Errorf("failed to parse claims: %v", err)
 	}
 
+	// Get user permissions first to determine user type
+	permissions := getUserPermissions(claims)
+	
+	// Determine user type based on admin permissions
+	userType := "user"
+	if permissions.Update && permissions.Delete && permissions.Upload {
+		userType = "admin"
+	}
+
 	// Create user object from OIDC claims
 	user := &models.User{
 		ID:          claims.Sub,
 		Username:    getUsername(claims),
-		Type:        "user",
+		Type:        userType,
 		Token:       tokenString,
 		IsActive:    true,
 		IsLocked:    false,
 		LastSeen:    int(time.Now().Unix()),
 		CreatedAt:   int(time.Now().Unix()),
-		Permissions: getUserPermissions(claims),
+		Permissions: permissions,
 	}
 
-	logs.Debug("Successfully validated OIDC token for user: %s", user.Username)
+	logs.Debug("Successfully validated OIDC token for user: %s (type: %s, admin: %t)", 
+		user.Username, user.Type, user.Type == "admin")
+	logs.Debug("User permissions - Update: %t, Delete: %t, Upload: %t", 
+		user.Permissions.Update, user.Permissions.Delete, user.Permissions.Upload)
 	return user, nil
 }
 
@@ -188,9 +200,12 @@ func getUserPermissions(claims struct {
 	adminRoles := []string{"admin", "administrator", "seeklit-admin"}
 	adminGroups := []string{"admin", "administrators", "seeklit-admin"}
 
+	logs.Debug("Checking admin permissions for user roles: %v, groups: %v", claims.Roles, claims.Groups)
+
 	for _, role := range claims.Roles {
 		for _, adminRole := range adminRoles {
 			if strings.EqualFold(role, adminRole) {
+				logs.Debug("Admin role detected: %s matches %s", role, adminRole)
 				permissions.Update = true
 				permissions.Delete = true
 				permissions.Upload = true
@@ -202,6 +217,7 @@ func getUserPermissions(claims struct {
 	for _, group := range claims.Groups {
 		for _, adminGroup := range adminGroups {
 			if strings.EqualFold(group, adminGroup) {
+				logs.Debug("Admin group detected: %s matches %s", group, adminGroup)
 				permissions.Update = true
 				permissions.Delete = true
 				permissions.Upload = true
@@ -209,6 +225,8 @@ func getUserPermissions(claims struct {
 			}
 		}
 	}
+
+	logs.Debug("No admin roles/groups found, using default permissions")
 
 	return permissions
 }
