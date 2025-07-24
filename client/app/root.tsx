@@ -32,11 +32,31 @@ export const links: LinksFunction = () => [
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs) => {
-  const user = await getUser(request);
-  // console.log(user)
-  return Response.json({
-    user,
-  });
+  console.log("Root loader called for:", request.url);
+  try {
+    const user = await getUser(request);
+    console.log("Root loader - user retrieved:", !!user);
+    return Response.json({
+      user,
+    });
+  } catch (error) {
+    console.error("Root loader - getUser failed:", error);
+
+    // Check if the error is a redirect response (from logout)
+    if (
+      error instanceof Response &&
+      error.status >= 300 &&
+      error.status < 400
+    ) {
+      console.log("Root loader - returning redirect response");
+      return error; // Return the redirect response directly
+    }
+
+    // For other errors, just return null user
+    return Response.json({
+      user: null,
+    });
+  }
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {

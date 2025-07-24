@@ -77,7 +77,7 @@ func (s *ConfigController) Get() {
 func (c *ConfigController) UpdateConfig() {
 	// Check if user is admin
 	user := middlewares.GetUser(c.Ctx)
-	if user == nil || (user.Type != "admin" && user.Type != "root") {
+	if user == nil || (!user.IsAdmin()) {
 		c.Ctx.Output.SetStatus(403)
 		c.Data["json"] = map[string]string{"error": "Admin access required"}
 		c.ServeJSON()

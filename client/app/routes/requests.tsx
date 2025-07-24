@@ -38,7 +38,7 @@ import {
   Trash,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
-import { useOptionalUser } from "@/utils";
+import { isAdmin, useOptionalUser } from "@/utils";
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { getUserToken } from "@/session.server";
 import { localApi } from "@/lib/localApi";
@@ -276,9 +276,7 @@ const BookRequests = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Cover</TableHead>
-                      {user?.type === "root" && (
-                        <TableHead>Requestor</TableHead>
-                      )}
+                      {isAdmin(user) && <TableHead>Requestor</TableHead>}
                       <TableHead>Title</TableHead>
                       <TableHead>Author</TableHead>
                       <TableHead>Approval Status</TableHead>
@@ -302,7 +300,7 @@ const BookRequests = () => {
                             </div>
                           )}
                         </TableCell>
-                        {user?.type === "root" && (
+                        {isAdmin(user) && (
                           <TableCell className="font-medium">
                             {request.requestor_username}
                           </TableCell>
@@ -328,7 +326,7 @@ const BookRequests = () => {
                               View details for {request.title}
                             </span>
                           </Button>
-                          {user?.type === "root" && (
+                          {isAdmin(user) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -478,7 +476,7 @@ const BookRequests = () => {
                         <strong>Download Status:</strong>{" "}
                         {selectedRequest?.download_status}
                       </p>
-                      {user?.type === "root" &&
+                      {isAdmin(user) &&
                         selectedRequest?.download_status === "complete" && (
                           <p>
                             <strong>Download Source:</strong>{" "}

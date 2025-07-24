@@ -1,15 +1,22 @@
-/* eslint-disable import/no-unresolved */
-import { getUserToken, logout } from "@/session.server";
-import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { LoaderFunction, LoaderFunctionArgs } from "@remix-run/node";
+import { logout } from "@/session.server";
 
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs) => {
-  const userToken = await getUserToken(request);
-  if (!userToken) return redirect("/auth");
-  return await logout(request);
+  return logout(request);
 };
 
+// No component needed for this route
 export default function LogoutRoute() {
-  return null; // This route only exists to handle the logout logic.
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold">Logging out...</h2>
+        <p className="text-muted-foreground">
+          Please wait while we sign you out.
+        </p>
+      </div>
+    </div>
+  );
 }

@@ -7,9 +7,11 @@ toolchain go1.23.7
 require github.com/beego/beego/v2 v2.3.8
 
 require (
+	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/smartystreets/goconvey v1.8.1
+	golang.org/x/oauth2 v0.25.0
 	gorm.io/gorm v1.30.0
 )
 
@@ -18,6 +20,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { localApi } from "@/lib/localApi";
+import { isAdmin } from "@/utils";
 import { ConstructionIcon, InfoIcon } from "lucide-react";
 import React from "react";
 
@@ -142,7 +143,7 @@ export default function NotificationSettings({
               Email notifications are currently disabled by the administrator.
               SMTP must be configured in the admin settings to enable email
               notifications.
-              {user?.type === "root" && (
+              {isAdmin(user) && (
                 <span> You can configure SMTP settings in the Admin tab.</span>
               )}
             </AlertDescription>

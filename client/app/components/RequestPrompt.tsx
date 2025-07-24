@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { useOptionalUser } from "@/utils";
+import { isAdmin, useOptionalUser } from "@/utils";
 import { Label } from "./ui/label";
 
 type Props = {
@@ -99,7 +99,7 @@ const RequestPrompt = (props: Props) => {
               </p>
             </div>
           </div>
-          {(user?.type === "admin" || user?.type === "root") && (
+          {isAdmin(user) && (
             <div className="space-y-2">
               <Label htmlFor="approval">Request as</Label>
               <Select

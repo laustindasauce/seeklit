@@ -7,6 +7,60 @@ import (
 
 func init() {
 
+    beego.GlobalControllerRouter["api/controllers:AuthController"] = append(beego.GlobalControllerRouter["api/controllers:AuthController"],
+        beego.ControllerComments{
+            Method: "Callback",
+            Router: `/callback`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:AuthController"] = append(beego.GlobalControllerRouter["api/controllers:AuthController"],
+        beego.ControllerComments{
+            Method: "AuthInfo",
+            Router: `/info`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:AuthController"] = append(beego.GlobalControllerRouter["api/controllers:AuthController"],
+        beego.ControllerComments{
+            Method: "Login",
+            Router: `/login`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:AuthController"] = append(beego.GlobalControllerRouter["api/controllers:AuthController"],
+        beego.ControllerComments{
+            Method: "Logout",
+            Router: `/logout`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:AuthController"] = append(beego.GlobalControllerRouter["api/controllers:AuthController"],
+        beego.ControllerComments{
+            Method: "GetAuthTokens",
+            Router: `/tokens`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:AuthController"] = append(beego.GlobalControllerRouter["api/controllers:AuthController"],
+        beego.ControllerComments{
+            Method: "UserInfo",
+            Router: `/userinfo`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
     beego.GlobalControllerRouter["api/controllers:ConfigController"] = append(beego.GlobalControllerRouter["api/controllers:ConfigController"],
         beego.ControllerComments{
             Method: "Get",
@@ -200,6 +254,15 @@ func init() {
         beego.ControllerComments{
             Method: "PersonalizedSearch",
             Router: `/personalized`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["api/controllers:UserController"] = append(beego.GlobalControllerRouter["api/controllers:UserController"],
+        beego.ControllerComments{
+            Method: "GetUsers",
+            Router: `/`,
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,

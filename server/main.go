@@ -3,6 +3,7 @@ package main
 import (
 	"api/database"
 	"api/helpers"
+	"api/middlewares"
 	_ "api/routers"
 
 	"github.com/beego/beego/v2/core/config"
@@ -24,6 +25,19 @@ func init() {
 	logs.Info("Logger initialized..")
 
 	database.Connect()
+
+	// Initialize OIDC if enabled
+	if middlewares.IsOIDCEnabled() {
+		if err := middlewares.InitOIDC(); err != nil {
+			logs.Error("Failed to initialize OIDC: %v", err)
+			logs.Error("OIDC authentication will not be available")
+			// Continue running - the system can still use audiobookshelf auth
+		} else {
+			logs.Info("OIDC authentication initialized successfully")
+		}
+	} else {
+		logs.Info("OIDC authentication disabled")
+	}
 }
 
 func main() {
@@ -34,6 +48,9 @@ func main() {
 	}
 
 	logs.Debug("Starting application")
+
+	beego.BConfig.WebConfig.Session.SessionOn = true
+	beego.BConfig.WebConfig.Session.SessionName = "seeklit_session"
 
 	beego.Run()
 }

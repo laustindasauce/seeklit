@@ -36,6 +36,7 @@ services:
     environment:
       SEEKLIT_ABS_URL: http://audiobookshelf:80
       SEEKLIT_ABS_EXTERNAL_URL: http://localhost:13378
+      SEEKLIT_SERVER_URL: http://seeklit-server:8416
       SEEKLIT_ADMIN_EMAIL: admin@example.com
       SEEKLIT_DISABLE_ISSUES: "false"
       PUID: 1000

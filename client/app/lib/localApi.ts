@@ -3,13 +3,22 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 
 const getApiClient = (baseUrl?: string) => {
   if (!baseUrl) {
-    baseUrl = window.location.origin;
+    if (typeof window !== "undefined") {
+      // Client-side: use current origin
+      baseUrl = window.location.origin;
+    } else {
+      // Server-side (SSR): use environment variable for internal Docker communication
+      baseUrl = process.env.SEEKLIT_SERVER_URL || "http://localhost:8416";
+    }
   }
 
-  console.log(baseUrl);
+  // Ensure baseUrl ends with a slash if it's not empty
+  if (baseUrl && !baseUrl.endsWith("/")) {
+    baseUrl += "/";
+  }
 
   return axios.create({
-    baseURL: baseUrl + "/api/v1",
+    baseURL: baseUrl + "api/v1",
     timeout: 30000,
     headers: {
       "Content-Type": "application/json",
@@ -407,20 +416,113 @@ const verifyEmail = async (token: string, code: string) => {
   }
 };
 
+// Function to get authentication info
+const getAuthInfo = async () => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<AuthInfo> = await apiClient.get("/auth/info");
+    return response.data;
+  } catch (error) {
+    console.error("Get auth info error:", error);
+    throw error;
+  }
+};
+
+// Function to get user info from token (works with both auth methods)
+const getUserInfo = async (token: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<UserInfoResponse> = await apiClient.get(
+      "/auth/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Validate the response
+    if (!response.data || !response.data.user) {
+      throw new Error("Invalid user info response");
+    }
+
+    // Ensure the user object has the correct structure
+    const user = response.data.user;
+
+    // Ensure accessToken is available (might be named token in OIDC responses)
+    if (!user.accessToken && user.token) {
+      user.accessToken = user.token;
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Get user info error:", error);
+    throw error;
+  }
+};
+
+// Function to initiate OIDC login
+const initiateOIDCLogin = async () => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    // This will redirect to the OIDC provider
+    window.location.href = `${apiClient.defaults.baseURL}/auth/login`;
+  } catch (error) {
+    console.error("OIDC login error:", error);
+    throw error;
+  }
+};
+
+// Function to handle OIDC logout
+const oidcLogout = async () => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response = await apiClient.post("/auth/logout");
+    return response.data;
+  } catch (error) {
+    console.error("OIDC logout error:", error);
+    throw error;
+  }
+};
+
+// Function to get users (admin/root only)
+const getUsers = async (token: string) => {
+  try {
+    const apiClient: AxiosInstance = getApiClient();
+    const response: AxiosResponse<UsersResponse> = await apiClient.get(
+      "/users",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Get users error:", error);
+    throw error;
+  }
+};
+
 export const localApi = {
   createNewIssue,
   createNewRequest,
   deleteIssue,
   deleteRequest,
+  getAuthInfo,
   getIssues,
   getRecentBooks,
   getRequests,
   getServerConfig,
   getServerSettings,
+  getUserInfo,
   getUserPreferences,
+  getUsers,
   googleSearch,
-  openlibSearch,
   hardcoverSearch,
+  initiateOIDCLogin,
+  oidcLogout,
+  openlibSearch,
   readarrSearch,
   sendEmailVerification,
   updateIssue,

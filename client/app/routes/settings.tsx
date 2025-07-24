@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { localApi } from "@/lib/localApi";
 import { getEnvVal } from "@/lib/utils";
 import { getUserToken } from "@/session.server";
-import { useOptionalUser } from "@/utils";
+import { isAdmin, useOptionalUser } from "@/utils";
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { ConstructionIcon, InfoIcon, MenuIcon } from "lucide-react";
 import React from "react";
@@ -212,7 +212,7 @@ export default function SettingsPage() {
               <TabsList>
                 <TabsTrigger value="account">Account</TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                {user?.type === "root" && (
+                {isAdmin(user) && (
                   <TabsTrigger value="admin">Admin</TabsTrigger>
                 )}
                 {/* <TabsTrigger value="privacy">Privacy</TabsTrigger> */}
@@ -227,21 +227,29 @@ export default function SettingsPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <Alert className="mb-4 border-blue-200 bg-blue-100 text-blue-900">
-                      {/* Added color hex for blue-900 */}
                       <InfoIcon className="h-4 w-4" color="#0D47A1" />
-                      <AlertTitle>External Management</AlertTitle>
+                      <AlertTitle>Account Management</AlertTitle>
                       <AlertDescription>
-                        Your account details are managed in{" "}
-                        <a
-                          className="underline"
-                          href={getEnvVal(
-                            import.meta.env.VITE_ABS_EXTERNAL_URL,
-                            clientOrigin
-                          )}
-                        >
-                          Audiobookshelf
-                        </a>
-                        .
+                        {user?.auth_source === "audiobookshelf" ? (
+                          <>
+                            Your account details are managed in{" "}
+                            <a
+                              className="underline"
+                              href={getEnvVal(
+                                import.meta.env.VITE_ABS_EXTERNAL_URL,
+                                clientOrigin
+                              )}
+                            >
+                              Audiobookshelf
+                            </a>
+                            .
+                          </>
+                        ) : (
+                          <>
+                            Your account is managed by your organization's OIDC
+                            provider.
+                          </>
+                        )}
                       </AlertDescription>
                     </Alert>
                     <div className="space-y-2">
@@ -251,6 +259,30 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label htmlFor="user-type">User Type</Label>
                       <Input id="user-type" value={user?.type} disabled />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="auth-source">Authentication Method</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="auth-source"
+                          value={
+                            user?.auth_source === "oidc"
+                              ? "OpenID Connect (OIDC)"
+                              : "Audiobookshelf"
+                          }
+                          disabled
+                        />
+                        {user?.auth_source === "oidc" && (
+                          <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                            OIDC
+                          </div>
+                        )}
+                        {user?.auth_source === "audiobookshelf" && (
+                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded">
+                            ABS
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="can-req">Can Request</Label>
@@ -337,12 +369,12 @@ export default function SettingsPage() {
                   </CardFooter>
                 </Card>
               </TabsContent>
-              {user?.type === "root" && (
+              {isAdmin(user) && (
                 <TabsContent value="admin">
                   <AdminConfiguration
                     config={config}
                     setConfig={setConfig}
-                    userToken={user.accessToken}
+                    userToken={user?.accessToken || ""}
                   />
                 </TabsContent>
               )}

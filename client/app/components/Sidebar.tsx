@@ -79,7 +79,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
               <HelpCircle className="mr-2 h-4 w-4" /> Help
             </a>
           </Button>
-          {/* {user?.type === "root" && (
+          {/* {isAdmin(user) && (
             <Button variant="ghost" className="w-full justify-start" asChild>
               <a href="/admin">
                 <ShieldEllipsis className="mr-2 h-4 w-4" /> Administration
