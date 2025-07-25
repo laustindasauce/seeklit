@@ -11,6 +11,7 @@ type UserPreferences struct {
 	NotificationsEnabled  bool      `json:"notificationsEnabled" gorm:"default:false"`
 	EmailVerified         bool      `json:"emailVerified" gorm:"default:false"`
 	EmailVerificationCode string    `json:"-" gorm:"size:255"` // Hidden from JSON
+	Theme                 string    `json:"theme" gorm:"size:20;default:'system'"` // Theme preference: light, dark, system
 	CreatedAt             time.Time `json:"createdAt"`
 	UpdatedAt             time.Time `json:"updatedAt"`
 }

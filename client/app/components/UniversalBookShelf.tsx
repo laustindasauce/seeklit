@@ -92,11 +92,11 @@ export default function UniversalBookShelf({
                 key={book.id}
                 className={`flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                   shelfType === "ABS" && book.isAudiobook
-                    ? "border-blue-300"
+                    ? "border-primary"
                     : ""
                 } ${
                   shelfType === "ABS" && !book.isAudiobook
-                    ? "border-green-300"
+                    ? "border-secondary"
                     : ""
                 }`}
               >
@@ -130,9 +130,9 @@ export default function UniversalBookShelf({
                       <>
                         {!isIssuesDisabled && (
                           <Button
-                            variant="outline"
+                            variant="secondary"
                             size="sm"
-                            className="w-full border border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-black"
+                            className="w-full"
                             onClick={() => handleNewIssueClick(book)}
                           >
                             <BadgeAlert

@@ -36,8 +36,20 @@ export const loader: LoaderFunction = async ({
   try {
     const user = await getUser(request);
     console.log("Root loader - user retrieved:", !!user);
+
+    let userPreferences = null;
+    if (user?.accessToken) {
+      try {
+        const { localApi } = await import("./lib/localApi");
+        userPreferences = await localApi.getUserPreferences(user.accessToken);
+      } catch (prefError) {
+        console.warn("Failed to load user preferences:", prefError);
+      }
+    }
+
     return Response.json({
       user,
+      userPreferences,
     });
   } catch (error) {
     console.error("Root loader - getUser failed:", error);
@@ -55,20 +67,49 @@ export const loader: LoaderFunction = async ({
     // For other errors, just return null user
     return Response.json({
       user: null,
+      userPreferences: null,
     });
   }
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  useLoaderData<{ user: User | null }>();
-  // console.log(user)
+  const { userPreferences } = useLoaderData<{
+    user: User | null;
+    userPreferences: UserPreferences | null;
+  }>();
+
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const serverTheme = ${JSON.stringify(
+                  userPreferences?.theme || null
+                )};
+                const theme = serverTheme || localStorage.getItem('theme') || 'system';
+                const root = document.documentElement;
+                
+                if (theme === 'system') {
+                  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  root.classList.add(systemTheme);
+                } else {
+                  root.classList.add(theme);
+                }
+                
+                // Update localStorage with server theme if available
+                if (serverTheme) {
+                  localStorage.setItem('theme', serverTheme);
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         {children}

@@ -44,6 +44,7 @@ func (c *UserPreferencesController) Get() {
 			UserID:               user.ID,
 			NotificationsEnabled: false,
 			EmailVerified:        false,
+			Theme:                "system",
 		}
 		err = database.DB.Create(prefs).Error
 		if err != nil {
@@ -85,6 +86,7 @@ func (c *UserPreferencesController) Put() {
 	var updateData struct {
 		Email                string `json:"email"`
 		NotificationsEnabled bool   `json:"notificationsEnabled"`
+		Theme                string `json:"theme"`
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updateData); err != nil {
@@ -104,6 +106,7 @@ func (c *UserPreferencesController) Put() {
 			Email:                updateData.Email,
 			NotificationsEnabled: false,
 			EmailVerified:        false,
+			Theme:                updateData.Theme,
 		}
 		err = database.DB.Create(prefs).Error
 	} else if err == nil {
@@ -111,6 +114,11 @@ func (c *UserPreferencesController) Put() {
 		emailChanged := prefs.Email != updateData.Email
 		prefs.Email = updateData.Email
 		prefs.NotificationsEnabled = false
+		
+		// Update theme preference
+		if updateData.Theme != "" {
+			prefs.Theme = updateData.Theme
+		}
 
 		// Reset email verification if email changed
 		if emailChanged {

@@ -1,50 +1,71 @@
 @import "tailwindcss";
 
 @theme {
+  /* Light theme (default) */
   --color-background: oklch(100% 0 0);
   --color-foreground: oklch(9% 0.016 285.88);
   --color-card: oklch(100% 0 0);
   --color-card-foreground: oklch(9% 0.016 285.88);
   --color-popover: oklch(100% 0 0);
   --color-popover-foreground: oklch(9% 0.016 285.88);
-  --color-primary: oklch(11.2% 0.032 285.88);
+  --color-primary: oklch(50.8% 0.12 162.4);
   --color-primary-foreground: oklch(98% 0.004 285.88);
-  --color-secondary: oklch(96.1% 0.004 285.88);
-  --color-secondary-foreground: oklch(11.2% 0.032 285.88);
+  --color-secondary: oklch(97.8% 0.015 102.7);
+  --color-secondary-foreground: oklch(4.9% 0.016 285.88);
   --color-muted: oklch(96.1% 0.004 285.88);
   --color-muted-foreground: oklch(46.9% 0.016 285.88);
   --color-accent: oklch(96.1% 0.004 285.88);
   --color-accent-foreground: oklch(11.2% 0.032 285.88);
   --color-destructive: oklch(60.2% 0.177 29.23);
   --color-destructive-foreground: oklch(98% 0.004 285.88);
-  --color-input: oklch(85% 0.01 285.88);
+  --color-border: oklch(85% 0.01 285.88);
   --color-input: oklch(85% 0.01 285.88);
   --color-ring: oklch(9% 0.016 285.88);
   --radius: 0.5rem;
+
+  /* Dark theme variables */
+  --color-dark-background: oklch(4.9% 0.016 285.88);
+  --color-dark-foreground: oklch(98% 0.004 285.88);
+  --color-dark-card: oklch(4.9% 0.016 285.88);
+  --color-dark-card-foreground: oklch(98% 0.004 285.88);
+  --color-dark-popover: oklch(4.9% 0.016 285.88);
+  --color-dark-popover-foreground: oklch(98% 0.004 285.88);
+  --color-dark-primary: oklch(50.8% 0.12 162.4);
+  --color-dark-primary-foreground: oklch(98% 0.004 285.88);
+  --color-dark-secondary: oklch(97.8% 0.015 102.7);
+  --color-dark-secondary-foreground: oklch(4.9% 0.016 285.88);
+  --color-dark-muted: oklch(17.5% 0.021 285.88);
+  --color-dark-muted-foreground: oklch(65.1% 0.02 285.88);
+  --color-dark-accent: oklch(33.5% 0.021 285.88);
+  --color-dark-accent-foreground: oklch(98% 0.004 285.88);
+  --color-dark-destructive: oklch(30.6% 0.177 29.23);
+  --color-dark-destructive-foreground: oklch(98% 0.004 285.88);
+  --color-dark-border: oklch(35% 0.02 285.88);
+  --color-dark-input: oklch(35% 0.02 285.88);
+  --color-dark-ring: oklch(83.9% 0.027 285.88);
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-background: oklch(4.9% 0.016 285.88);
-    --color-foreground: oklch(98% 0.004 285.88);
-    --color-card: oklch(4.9% 0.016 285.88);
-    --color-card-foreground: oklch(98% 0.004 285.88);
-    --color-popover: oklch(4.9% 0.016 285.88);
-    --color-popover-foreground: oklch(98% 0.004 285.88);
-    --color-primary: oklch(98% 0.004 285.88);
-    --color-primary-foreground: oklch(11.2% 0.032 285.88);
-    --color-secondary: oklch(17.5% 0.021 285.88);
-    --color-secondary-foreground: oklch(98% 0.004 285.88);
-    --color-muted: oklch(17.5% 0.021 285.88);
-    --color-muted-foreground: oklch(65.1% 0.02 285.88);
-    --color-accent: oklch(33.5% 0.021 285.88);
-    --color-accent-foreground: oklch(98% 0.004 285.88);
-    --color-destructive: oklch(30.6% 0.177 29.23);
-    --color-destructive-foreground: oklch(98% 0.004 285.88);
-    --color-border: oklch(35% 0.02 285.88);
-    --color-input: oklch(35% 0.02 285.88);
-    --color-ring: oklch(83.9% 0.027 285.88);
-  }
+/* Dark theme overrides */
+.dark {
+  --color-background: var(--color-dark-background);
+  --color-foreground: var(--color-dark-foreground);
+  --color-card: var(--color-dark-card);
+  --color-card-foreground: var(--color-dark-card-foreground);
+  --color-popover: var(--color-dark-popover);
+  --color-popover-foreground: var(--color-dark-popover-foreground);
+  --color-primary: var(--color-dark-primary);
+  --color-primary-foreground: var(--color-dark-primary-foreground);
+  --color-secondary: var(--color-dark-secondary);
+  --color-secondary-foreground: var(--color-dark-secondary-foreground);
+  --color-muted: var(--color-dark-muted);
+  --color-muted-foreground: var(--color-dark-muted-foreground);
+  --color-accent: var(--color-dark-accent);
+  --color-accent-foreground: var(--color-dark-accent-foreground);
+  --color-destructive: var(--color-dark-destructive);
+  --color-destructive-foreground: var(--color-dark-destructive-foreground);
+  --color-border: var(--color-dark-border);
+  --color-input: var(--color-dark-input);
+  --color-ring: var(--color-dark-ring);
 }
 
 html,
@@ -53,11 +74,11 @@ body {
   color: var(--color-foreground);
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
   }
-}
+} */
 
 /* Custom input styling */
 .input-styled {
