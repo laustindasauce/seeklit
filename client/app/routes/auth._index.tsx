@@ -19,12 +19,7 @@ import {
   LoaderFunctionArgs,
   redirect,
 } from "@remix-run/node";
-import {
-  Form,
-  useActionData,
-  useNavigate,
-  useSearchParams,
-} from "@remix-run/react";
+import { Form, useActionData, useSearchParams } from "@remix-run/react";
 import { createUserSession, getUserToken } from "@/session.server";
 import { getEnvVal } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -67,7 +62,6 @@ export const loader: LoaderFunction = async ({
 
 export default function SignInPage() {
   const actionData = useActionData<typeof action>();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
@@ -109,6 +103,20 @@ export default function SignInPage() {
       setError(searchParams.get("error"));
     }
   }, [searchParams]);
+
+  // Auto-route to OIDC if it's the only available method and auto-redirect is enabled
+  useEffect(() => {
+    if (
+      authInfo &&
+      authInfo.method === "oidc" &&
+      authInfo.available_methods?.oidc &&
+      !authInfo.available_methods?.audiobookshelf &&
+      authInfo.auto_redirect &&
+      !isLoading
+    ) {
+      handleOIDCLogin();
+    }
+  }, [authInfo, isLoading]);
 
   const showAudiobookshelf = authInfo?.available_methods?.audiobookshelf;
   const showOIDC = authInfo?.available_methods?.oidc;

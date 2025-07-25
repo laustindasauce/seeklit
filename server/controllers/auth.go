@@ -94,12 +94,16 @@ func (c *AuthController) AuthInfo() {
 		oidcAvailable = middlewares.GetOIDCProvider() != nil && middlewares.GetOAuth2Config() != nil
 	}
 
+	// Get auto-redirect setting
+	autoRedirect := config.DefaultBool("auth::autoredirect", true)
+
 	info := map[string]interface{}{
 		"method": authMethod,
 		"available_methods": map[string]bool{
 			"audiobookshelf": authMethod == "audiobookshelf" || authMethod == "both",
 			"oidc":           oidcAvailable,
 		},
+		"auto_redirect": autoRedirect,
 	}
 
 	// Add OIDC-specific info if available
