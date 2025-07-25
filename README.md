@@ -38,16 +38,17 @@ make up-separate
 
 Configure your deployment with these environment variables:
 
-| Variable                   | Description                     | Default                | Required |
-| -------------------------- | ------------------------------- | ---------------------- | -------- |
-| `SEEKLIT_ABS_URL`          | Internal AudioBookshelf API URL | -                      | Yes      |
-| `SEEKLIT_ABS_EXTERNAL_URL` | External AudioBookshelf URL     | -                      | Yes      |
-| `SEEKLIT_ADMIN_EMAIL`      | Admin contact email             | -                      | Yes      |
-| `SEEKLIT_CONF_FILE`        | Configuration file path         | `/config/seeklit.conf` | No       |
-| `SEEKLIT_DISABLE_ISSUES`   | Disable the issues feature      | `false`                | No       |
-| `TZ`                       | Timezone                        | `America/New_York`     | No       |
-| `PUID`                     | User ID for file permissions    | `1000`                 | No       |
-| `PGID`                     | Group ID for file permissions   | `1000`                 | No       |
+| Variable                   | Description                     | Default                    | Required  |
+| -------------------------- | ------------------------------- | -------------------------- | --------- |
+| `SEEKLIT_ABS_URL`          | Internal AudioBookshelf API URL | -                          | No (OIDC) |
+| `SEEKLIT_ABS_EXTERNAL_URL` | External AudioBookshelf URL     | -                          | Yes       |
+| `SEEKLIT_ADMIN_EMAIL`      | Admin contact email             | -                          | Yes       |
+| `SEEKLIT_SERVER_URL`       | Internal Server URL             | http://seeklit-server:8416 | No        |
+| `SEEKLIT_DISABLE_ISSUES`   | Disable the issues feature      | `false`                    | No        |
+| `SEEKLIT_CONF_FILE`        | Configuration file path         | `/config/seeklit.conf`     | No        |
+| `TZ`                       | Timezone                        | `America/New_York`         | No        |
+| `PUID`                     | User ID for file permissions    | `1000`                     | No        |
+| `PGID`                     | Group ID for file permissions   | `1000`                     | No        |
 
 ### Configuration
 
