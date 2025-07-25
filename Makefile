@@ -29,6 +29,7 @@ install-client:
 	cd client && pnpm install
 	@echo 'SEEKLIT_ABS_URL="http://audiobookshelf:80"' >> client/.env
 	@echo 'SEEKLIT_ABS_EXTERNAL_URL="http://localhost:13378"' >> client/.env
+	@echo 'SEEKLIT_SERVER_URL="http://localhost:8416"' >> client/.env
 	@echo 'VITE_ABS_URL="http://audiobookshelf:80"' >> client/.env
 	@echo 'VITE_ABS_EXTERNAL_URL="http://localhost:13378"' >> client/.env
 	@echo 'VITE_ADMIN_EMAIL="dev@example.com"' >> client/.env
@@ -41,7 +42,6 @@ install-server:
 	@echo "Setting up dev environment file"
 	@echo 'SEEKLIT_CONF_FILE="dev.conf"' > server/.env
 	@echo 'SEEKLIT_VERSION="develop"' >> server/.env
-	@echo 'SEEKLIT_ABS_EXTERNAL_URL="http://localhost:13378"' >> server/.env
 
 create-dev-script:
 	@echo "Creating run_dev.sh script..."
