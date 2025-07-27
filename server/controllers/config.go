@@ -20,7 +20,10 @@ type ConfigController struct {
 // @Success 200 {object} map[string]any
 // @router / [get]
 func (s *ConfigController) Get() {
-	sections := []string{"default", "general", "db", "metadata", "notify", "download", "smtp"}
+	sections := []string{
+		"default", "general", "db", "metadata", "notify",
+		"download", "smtp", "auth", "oidc",
+	}
 
 	// Get the current user from context
 	user := middlewares.GetUser(s.Ctx)
@@ -30,6 +33,7 @@ func (s *ConfigController) Get() {
 	allowedKeysForNonAdmin := map[string][]string{
 		"metadata": {"provider"},
 		"smtp":     {"enabled"},
+		"auth":     {"method"},
 	}
 
 	// Create a map to hold the configuration options

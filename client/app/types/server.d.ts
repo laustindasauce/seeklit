@@ -89,6 +89,7 @@ type UserPreferences = {
   email: string;
   notificationsEnabled: boolean;
   emailVerified: boolean;
+  theme: "light" | "dark" | "system";
   createdAt: string;
   updatedAt: string;
 };
@@ -104,6 +105,7 @@ type AuthInfo = {
     callback_url: string;
     provider_name?: string; // Name of the OIDC provider (e.g., "Keycloak", "Auth0", etc.)
   };
+  auto_redirect?: boolean;
 };
 
 type UserInfoResponse = {

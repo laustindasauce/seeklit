@@ -9,6 +9,7 @@ import {
   BadgeAlert,
 } from "lucide-react";
 import { getEnvVal } from "@/lib/utils";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -87,8 +88,11 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             </Button>
           )} */}
         </nav>
-        <div className="p-4 text-sm text-gray-500">
-          Version: {import.meta.env.VITE_SEEKLIT_VERSION}
+        <div className="p-4 space-y-3">
+          <ThemeToggle />
+          <div className="text-sm text-gray-500">
+            Version: {import.meta.env.VITE_SEEKLIT_VERSION}
+          </div>
         </div>
       </div>
     </div>

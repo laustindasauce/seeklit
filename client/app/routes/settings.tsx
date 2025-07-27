@@ -271,6 +271,7 @@ export default function SettingsPage() {
                               : "Audiobookshelf"
                           }
                           disabled
+                          className="max-w-xs"
                         />
                         {user?.auth_source === "oidc" && (
                           <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">

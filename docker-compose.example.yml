@@ -18,8 +18,9 @@ services:
     environment:
       SEEKLIT_ABS_URL: http://audiobookshelf:80
       SEEKLIT_ABS_EXTERNAL_URL: https://abs.example.com
+      SEEKLIT_SERVER_URL: http://seeklit-server:8416
       SEEKLIT_ADMIN_EMAIL: 
-      SEEKLIT_DISABLE_ISSUES: "false" # Set to "true" to disable the issues feature
+      SEEKLIT_DISABLE_ISSUES: "false"
     depends_on:
       - server
 
