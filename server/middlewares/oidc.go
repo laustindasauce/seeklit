@@ -23,12 +23,7 @@ var (
 
 // InitOIDC initializes the OIDC provider and configuration
 func InitOIDC() error {
-	// Check if OIDC is enabled
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-	if authMethod != "oidc" && authMethod != "both" {
-		logs.Info("OIDC authentication disabled (auth method: %s)", authMethod)
-		return nil
-	}
+	// OIDC is always enabled in this configuration
 
 	issuerURL, err := config.String("oidc::issuer")
 	if err != nil || issuerURL == "" || issuerURL == "https://your-oidc-provider.com" {

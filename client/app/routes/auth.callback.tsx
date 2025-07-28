@@ -1,5 +1,4 @@
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
-import { createUserSession } from "@/session.server";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "@remix-run/react";
 

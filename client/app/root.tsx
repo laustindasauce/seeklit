@@ -34,6 +34,7 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   console.log("Root loader called for:", request.url);
   try {
+    // Get user from OIDC session cookie
     const user = await getUser(request);
     console.log("Root loader - user retrieved:", !!user);
 

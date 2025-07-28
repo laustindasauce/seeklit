@@ -227,26 +227,8 @@ export default function SettingsPage() {
                       <InfoIcon className="h-4 w-4" color="#0D47A1" />
                       <AlertTitle>Account Management</AlertTitle>
                       <AlertDescription>
-                        {user?.auth_source === "audiobookshelf" ? (
-                          <>
-                            Your account details are managed in{" "}
-                            <a
-                              className="underline"
-                              href={getEnvVal(
-                                import.meta.env.VITE_ABS_EXTERNAL_URL,
-                                clientOrigin
-                              )}
-                            >
-                              Audiobookshelf
-                            </a>
-                            .
-                          </>
-                        ) : (
-                          <>
-                            Your account is managed by your organization's OIDC
-                            provider.
-                          </>
-                        )}
+                        Your account is managed by your organization's OIDC
+                        provider.
                       </AlertDescription>
                     </Alert>
                     <div className="space-y-2">
@@ -262,24 +244,13 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-2">
                         <Input
                           id="auth-source"
-                          value={
-                            user?.auth_source === "oidc"
-                              ? "OpenID Connect (OIDC)"
-                              : "Audiobookshelf"
-                          }
+                          value="OpenID Connect (OIDC)"
                           disabled
                           className="max-w-xs"
                         />
-                        {user?.auth_source === "oidc" && (
-                          <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                            OIDC
-                          </div>
-                        )}
-                        {user?.auth_source === "audiobookshelf" && (
-                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded">
-                            ABS
-                          </div>
-                        )}
+                        <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                          OIDC
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">

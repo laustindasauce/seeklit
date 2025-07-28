@@ -41,34 +41,16 @@ func (c *UserController) GetUsers() {
 		return
 	}
 
-	// Get auth method from config with default fallback
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-
-	var token string
-
-	// Determine which token to use based on auth method
-	switch authMethod {
-	case "oidc":
-		absApiKey := config.DefaultString("general::audiobookshelfapikey", "")
-		// For OIDC-only auth, fail if api key is empty
-		if absApiKey == "" {
-			logs.Critical("audiobookshelfapikey is empty and auth method is OIDC. Unable to get users.")
-			c.Ctx.Output.SetStatus(http.StatusUnauthorized)
-			c.Data["json"] = map[string]string{"error": "Audiobookshelf API Key required for user management."}
-			c.ServeJSON()
-			return
-		}
-		token = absApiKey
-	case "audiobookshelf", "both":
-		// Try API key first, fallback to user token
-		token = config.DefaultString("general::audiobookshelfapikey", user.Token)
-	default:
-		logs.Critical("Unknown auth method: %s. Unable to get users.", authMethod)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "Invalid authentication configuration."}
+	// For OIDC-only auth, use the configured API key
+	absApiKey := config.DefaultString("general::audiobookshelfapikey", "")
+	if absApiKey == "" {
+		logs.Critical("audiobookshelfapikey is empty. Unable to get users.")
+		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
+		c.Data["json"] = map[string]string{"error": "Audiobookshelf API Key required for user management."}
 		c.ServeJSON()
 		return
 	}
+	token := absApiKey
 
 	users, err := getAudiobookshelfUsers(token)
 	if err != nil {

@@ -42,7 +42,7 @@ type User = {
   permissions: UserPermissions;
   librariesAccessible: string[];
   itemTagsAccessible: string[];
-  auth_source?: "audiobookshelf" | "oidc"; // Added to track authentication source
+  auth_source?: "oidc"; // Added to track authentication source
   email?: string; // May be provided by OIDC
   name?: string; // May be provided by OIDC
   groups?: string[]; // May be provided by OIDC

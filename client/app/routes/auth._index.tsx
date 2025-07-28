@@ -1,7 +1,5 @@
 /* eslint-disable import/no-unresolved */
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 import {
   Card,
@@ -10,47 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { api } from "@/lib/api";
 import { localApi } from "@/lib/localApi";
-import {
-  ActionFunction,
-  ActionFunctionArgs,
-  LoaderFunction,
-  LoaderFunctionArgs,
-  redirect,
-} from "@remix-run/node";
-import { Form, useActionData, useSearchParams } from "@remix-run/react";
-import { createUserSession, getUserToken } from "@/session.server";
-import { getEnvVal } from "@/lib/utils";
+import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { useSearchParams } from "@remix-run/react";
+import { getUserToken } from "@/session.server";
 import { useEffect, useState } from "react";
 
-// Define the action for handling login
-export const action: ActionFunction = async ({
-  request,
-}: ActionFunctionArgs) => {
-  const formData = await request.formData();
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
-  const clientOrigin = request.headers.get("origin") || "";
-
-  try {
-    console.log("Attempting login with username:", username);
-    const data = await api.login(clientOrigin, username, password);
-    if (!data.user.accessToken) {
-      return Response.json(
-        { error: "Login failed. Please check your credentials." },
-        { status: 401 }
-      );
-    }
-    return createUserSession({ request, userToken: data.user.accessToken });
-  } catch (error) {
-    console.error("Login error:", error);
-    return Response.json(
-      { error: "Login failed. Please check your credentials." },
-      { status: 401 }
-    );
-  }
-};
+// No action needed for OIDC-only authentication
 
 export const loader: LoaderFunction = async ({
   request,
@@ -61,7 +25,6 @@ export const loader: LoaderFunction = async ({
 };
 
 export default function SignInPage() {
-  const actionData = useActionData<typeof action>();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
@@ -81,12 +44,12 @@ export default function SignInPage() {
         setAuthInfo(info);
       } catch (err) {
         console.error("Failed to get auth info:", err);
-        // Fallback to audiobookshelf only
+        // Fallback to OIDC only
         setAuthInfo({
-          method: "audiobookshelf",
+          method: "oidc",
           available_methods: {
-            audiobookshelf: true,
-            oidc: false,
+            audiobookshelf: false,
+            oidc: true,
           },
         });
       } finally {
@@ -104,13 +67,12 @@ export default function SignInPage() {
     }
   }, [searchParams]);
 
-  // Auto-route to OIDC if it's the only available method and auto-redirect is enabled
+  // Auto-route to OIDC if auto-redirect is enabled
   useEffect(() => {
     if (
       authInfo &&
       authInfo.method === "oidc" &&
       authInfo.available_methods?.oidc &&
-      !authInfo.available_methods?.audiobookshelf &&
       authInfo.auto_redirect &&
       !isLoading
     ) {
@@ -118,7 +80,6 @@ export default function SignInPage() {
     }
   }, [authInfo, isLoading]);
 
-  const showAudiobookshelf = authInfo?.available_methods?.audiobookshelf;
   const showOIDC = authInfo?.available_methods?.oidc;
 
   const handleOIDCLogin = async () => {
@@ -139,24 +100,7 @@ export default function SignInPage() {
   };
 
   const getAuthDescription = () => {
-    if (showOIDC && showAudiobookshelf) {
-      return "Choose your preferred authentication method";
-    } else if (showOIDC) {
-      return "Sign in with your organization's OIDC provider";
-    } else {
-      return (
-        <>
-          Enter your{" "}
-          <a
-            className="underline"
-            href={getEnvVal(import.meta.env.VITE_ABS_URL, clientOrigin)}
-          >
-            Audiobookshelf
-          </a>{" "}
-          credentials to access your account
-        </>
-      );
-    }
+    return "Sign in with your organization's OIDC provider";
   };
 
   // Get a more descriptive button label for OIDC
@@ -199,58 +143,11 @@ export default function SignInPage() {
                   {isLoading ? "Redirecting..." : getOIDCButtonLabel()}
                 </Button>
               )}
-
-              {/* Separator when both methods are available */}
-              {showOIDC && showAudiobookshelf && (
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or continue with
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Audiobookshelf Login Form */}
-              {showAudiobookshelf && (
-                <Form method="post" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      className="input-styled"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      className="border-gray-600 focus:border-gray-400 hover:border-gray-500 transition-colors"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" variant="outline">
-                    {showOIDC ? "Sign in with Audiobookshelf" : "Sign In"}
-                  </Button>
-                </Form>
-              )}
             </>
           )}
 
-          {/* Display errors from either action (form submission) or client-side errors */}
-          {(actionData?.error || error) && (
-            <p className="mt-4 text-sm text-red-500">
-              {actionData?.error || error}
-            </p>
-          )}
+          {/* Display client-side errors */}
+          {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
         </CardContent>
       </Card>
     </div>

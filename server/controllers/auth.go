@@ -27,14 +27,6 @@ type AuthController struct {
 // @Failure 500 {object} map[string]string
 // @router /login [get]
 func (c *AuthController) Login() {
-	// Check if OIDC is enabled
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-	if authMethod != "oidc" && authMethod != "both" {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = map[string]string{"error": "OIDC login not available"}
-		c.ServeJSON()
-		return
-	}
 
 	logs.Info("Retrieving config")
 
@@ -87,22 +79,16 @@ func (c *AuthController) Login() {
 // @Success 200 {object} map[string]any
 // @router /info [get]
 func (c *AuthController) AuthInfo() {
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-
-	// Check if OIDC is actually available (not just configured)
-	oidcAvailable := false
-	if authMethod == "oidc" || authMethod == "both" {
-		// OIDC is only available if both provider and config are initialized
-		oidcAvailable = middlewares.GetOIDCProvider() != nil && middlewares.GetOAuth2Config() != nil
-	}
+	// OIDC is only available if both provider and config are initialized
+	oidcAvailable := middlewares.GetOIDCProvider() != nil && middlewares.GetOAuth2Config() != nil
 
 	// Get auto-redirect setting
 	autoRedirect := config.DefaultBool("auth::autoredirect", true)
 
 	info := map[string]any{
-		"method": authMethod,
+		"method": "oidc",
 		"available_methods": map[string]bool{
-			"audiobookshelf": authMethod == "audiobookshelf" || authMethod == "both",
+			"audiobookshelf": false,
 			"oidc":           oidcAvailable,
 		},
 		"auto_redirect": autoRedirect,
@@ -129,14 +115,6 @@ func (c *AuthController) AuthInfo() {
 // @Failure 500 {object} map[string]string
 // @router /callback [get]
 func (c *AuthController) Callback() {
-	// Check if OIDC is enabled
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-	if authMethod != "oidc" && authMethod != "both" {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = map[string]string{"error": "OIDC callback not available"}
-		c.ServeJSON()
-		return
-	}
 	// Verify state parameter
 	state := c.GetString("state")
 	sessionHelper := helpers.NewSessionHelper(&c.Controller)
@@ -227,7 +205,7 @@ func (c *AuthController) Callback() {
 
 	// Get user permissions from OIDC claims
 	permissions := getUserPermissionsFromClaims(claims)
-	
+
 	// Determine user type based on admin permissions
 	userType := "user"
 	if permissions.Update && permissions.Delete && permissions.Upload {
@@ -283,7 +261,7 @@ func (c *AuthController) Logout() {
 		// Delete the session from our session store
 		sessionStore := lib.GetSessionStore()
 		sessionStore.DestroySession(sessionToken)
-		
+
 		logs.Debug("Logged out user with session token: %s", sessionToken[:8]+"...")
 	}
 

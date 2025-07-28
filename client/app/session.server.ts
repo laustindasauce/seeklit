@@ -11,9 +11,6 @@ const sessionStorage = createCookieSessionStorage({
   },
 });
 
-// Note: Session management is now handled server-side via cookies
-// These functions are kept for compatibility but are no longer used for auth
-
 async function getSession(request: Request) {
   const cookie = request.headers.get("Cookie");
   return sessionStorage.getSession(cookie);
