@@ -27,16 +27,12 @@ func init() {
 	database.Connect()
 
 	// Initialize OIDC if enabled
-	if middlewares.IsOIDCEnabled() {
-		if err := middlewares.InitOIDC(); err != nil {
-			logs.Error("Failed to initialize OIDC: %v", err)
-			logs.Error("OIDC authentication will not be available")
-			// Continue running - the system can still use audiobookshelf auth
-		} else {
-			logs.Info("OIDC authentication initialized successfully")
-		}
+	if err := middlewares.InitOIDC(); err != nil {
+		logs.Error("Failed to initialize OIDC: %v", err)
+		logs.Error("OIDC authentication will not be available")
+		// OIDC is required for authentication
 	} else {
-		logs.Info("OIDC authentication disabled")
+		logs.Info("OIDC authentication initialized successfully")
 	}
 }
 

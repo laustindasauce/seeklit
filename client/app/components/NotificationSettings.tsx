@@ -82,7 +82,7 @@ export default function NotificationSettings({
 
     setIsSendingVerification(true);
     try {
-      await localApi.sendEmailVerification(user.accessToken);
+      await localApi.sendEmailVerification();
       // Set 60 second cooldown after successful send
       setVerificationCooldown(60);
       toast({
@@ -106,9 +106,9 @@ export default function NotificationSettings({
 
     setIsVerifyingEmail(true);
     try {
-      await localApi.verifyEmail(user.accessToken, verificationCode.trim());
+      await localApi.verifyEmail(verificationCode.trim());
       // Refresh user preferences to get updated verification status
-      const updatedPrefs = await localApi.getUserPreferences(user.accessToken);
+      const updatedPrefs = await localApi.getUserPreferences();
       setUserPreferences(updatedPrefs);
       setVerificationCode("");
       toast({

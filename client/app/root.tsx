@@ -34,14 +34,33 @@ export const loader: LoaderFunction = async ({
 }: LoaderFunctionArgs) => {
   console.log("Root loader called for:", request.url);
   try {
+    // Get user from OIDC session cookie
     const user = await getUser(request);
     console.log("Root loader - user retrieved:", !!user);
 
     let userPreferences = null;
     if (user?.accessToken) {
       try {
-        const { localApi } = await import("./lib/localApi");
-        userPreferences = await localApi.getUserPreferences(user.accessToken);
+        // Make server-side API call with cookies from the request
+        const serverUrl =
+          process.env.SEEKLIT_SERVER_URL || new URL(request.url).origin;
+        const response = await fetch(`${serverUrl}/api/v1/user/preferences`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: request.headers.get("Cookie") || "",
+          },
+        });
+
+        if (response.ok) {
+          userPreferences = await response.json();
+        } else {
+          console.warn(
+            "Failed to load user preferences:",
+            response.status,
+            response.statusText
+          );
+        }
       } catch (prefError) {
         console.warn("Failed to load user preferences:", prefError);
       }

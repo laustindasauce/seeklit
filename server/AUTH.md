@@ -1,20 +1,12 @@
 # Authentication Configuration
 
-Seeklit now supports flexible authentication with three modes:
+Seeklit uses OpenID Connect (OIDC) for authentication.
 
-## Authentication Methods
+## Authentication Method
 
-### 1. Audiobookshelf Only (`audiobookshelf`)
-
-Uses your existing Audiobookshelf server for authentication. Tokens are validated against the Audiobookshelf API.
-
-### 2. OIDC Only (`oidc`)
+### OIDC Only (`oidc`)
 
 Uses OpenID Connect for authentication. Supports any OIDC-compliant provider (Keycloak, Auth0, Okta, etc.).
-
-### 3. Both (`both`)
-
-Tries OIDC first, then falls back to Audiobookshelf if OIDC validation fails. This allows for a gradual migration.
 
 ## Configuration
 
@@ -22,12 +14,8 @@ Tries OIDC first, then falls back to Audiobookshelf if OIDC validation fails. Th
 
 ```ini
 [auth]
-# Authentication method: "audiobookshelf", "oidc", or "both"
-method=both
-
-[audiobookshelf]
-# Audiobookshelf server URL for authentication
-url=http://audiobookshelf:80
+# Authentication method: OIDC only
+method=oidc
 
 [oidc]
 # OIDC Provider Configuration
@@ -61,7 +49,7 @@ GET /api/v1/auth/info
 
 Returns available authentication methods and configuration.
 
-### OIDC Login (when OIDC is enabled)
+### OIDC Login
 
 ```
 GET /api/v1/auth/login
@@ -69,7 +57,7 @@ GET /api/v1/auth/login
 
 Initiates OIDC login flow, redirects to provider.
 
-### OIDC Callback (when OIDC is enabled)
+### OIDC Callback
 
 ```
 GET /api/v1/auth/callback?code=...&state=...
@@ -84,7 +72,7 @@ GET /api/v1/auth/userinfo
 Authorization: Bearer <token>
 ```
 
-Returns current user information (works with both auth methods).
+Returns current user information from OIDC token.
 
 ### Logout
 
@@ -104,13 +92,10 @@ User permissions are determined from OIDC claims:
 
 The system checks both `roles` and `groups` claims for admin privileges.
 
-## Migration Strategy
+## Important Notes
 
-1. **Start with `audiobookshelf`**: Keep existing setup
-2. **Configure OIDC**: Add OIDC settings to config
-3. **Switch to `both`**: Allow both authentication methods
-4. **Test OIDC**: Verify OIDC authentication works
-5. **Switch to `oidc`**: Use only OIDC authentication
+- **Audiobookshelf API Key**: While authentication is handled by OIDC, you still need to configure the `audiobookshelfapikey` in the `[general]` section for accessing Audiobookshelf data (user management, personalized search, etc.)
+- **User Management**: User accounts are managed through your OIDC provider, not through Audiobookshelf
 
 ## Troubleshooting
 

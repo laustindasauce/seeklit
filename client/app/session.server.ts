@@ -1,10 +1,8 @@
 import { createCookieSessionStorage, redirect } from "@remix-run/node";
-import { api } from "./lib/api";
-import { localApi } from "./lib/localApi";
 
 const sessionStorage = createCookieSessionStorage({
   cookie: {
-    name: "__session",
+    name: "seeklit_session",
     httpOnly: true,
     path: "/",
     sameSite: "lax",
@@ -12,53 +10,6 @@ const sessionStorage = createCookieSessionStorage({
     // secure: process.env.NODE_ENV === "production",
   },
 });
-
-const USER_SESSION_KEY = "userToken";
-
-export async function createUserSession({
-  request,
-  userToken,
-  redirectTo = "/",
-}: {
-  request: Request;
-  userToken: string;
-  redirectTo?: string;
-}) {
-  console.log("Creating user session with token:", !!userToken);
-  const session = await getSession(request);
-  session.set(USER_SESSION_KEY, userToken);
-
-  const cookieHeader = await sessionStorage.commitSession(session, {
-    maxAge: 60 * 60 * 24 * 7, // 7 days,
-  });
-
-  console.log("Session cookie created, redirecting to:", redirectTo);
-
-  return redirect(redirectTo, {
-    headers: {
-      "Set-Cookie": cookieHeader,
-    },
-  });
-}
-
-export async function createUserSessionResponse({
-  request,
-  userToken,
-}: {
-  request: Request;
-  userToken: string;
-}) {
-  const session = await getSession(request);
-  session.set(USER_SESSION_KEY, userToken);
-  return new Response(JSON.stringify({ success: true }), {
-    headers: {
-      "Content-Type": "application/json",
-      "Set-Cookie": await sessionStorage.commitSession(session, {
-        maxAge: 60 * 60 * 24 * 7, // 7 days,
-      }),
-    },
-  });
-}
 
 async function getSession(request: Request) {
   const cookie = request.headers.get("Cookie");
@@ -68,130 +19,85 @@ async function getSession(request: Request) {
 export async function getUserToken(
   request: Request
 ): Promise<User["accessToken"] | undefined> {
-  const session = await getSession(request);
-  const userToken = session.get(USER_SESSION_KEY);
-  return userToken;
+  // Get user from server session and return their token for compatibility
+  const user = await getUser(request);
+  return user?.accessToken;
 }
 
 export async function getUser(request: Request) {
-  const userToken = await getUserToken(request);
-  console.log("getUser called, userToken exists:", !!userToken);
-
-  if (userToken === undefined) {
-    console.log("No user token found in session");
-    return null;
-  }
+  console.log("getUser called, checking server session cookie");
 
   try {
-    // First try to get user info from our server's unified auth endpoint
-    console.log("Attempting to get user info from server with token");
-    const userInfo = await localApi.getUserInfo(userToken);
-    console.log("getUserInfo response:", {
-      hasUserInfo: !!userInfo,
-      hasUser: !!(userInfo && userInfo.user),
-      authSource: userInfo?.auth_source,
+    // Get user info directly from server using session cookie
+    // The server will validate the session cookie and return user info
+    const serverUrl =
+      process.env.SEEKLIT_SERVER_URL || new URL(request.url).origin;
+    const response = await fetch(`${serverUrl}/api/v1/auth/tokens`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: request.headers.get("Cookie") || "",
+      },
     });
 
-    if (userInfo && userInfo.user) {
-      // Ensure accessToken is available
-      if (!userInfo.user.accessToken && userInfo.user.token) {
-        userInfo.user.accessToken = userInfo.user.token;
-      }
-      // Add auth_source to the user object
-      userInfo.user.auth_source = userInfo.auth_source;
+    console.log("Server session validation response status:", response.status);
 
-      console.debug(`User type: ${userInfo.user.type}`);
+    if (response.ok) {
+      const userInfo = await response.json();
+      console.log("getUserInfo response:", {
+        hasUserInfo: !!userInfo,
+        hasUser: !!(userInfo && userInfo.user),
+        authSource: userInfo?.user?.auth_source,
+      });
 
-      // Log successful authentication
-      console.log(`User authenticated via ${userInfo.auth_source}`);
-
-      return userInfo.user;
-    } else {
-      console.log("getUserInfo returned invalid response");
-    }
-  } catch (error) {
-    console.error("Failed to get user info from server:", error);
-
-    // Fallback to direct Audiobookshelf API call
-    try {
-      // Get auth info to check if audiobookshelf auth is enabled
-      const authInfo = await localApi.getAuthInfo().catch(() => ({
-        method: "audiobookshelf",
-        available_methods: { audiobookshelf: true, oidc: false },
-      }));
-
-      // Only try audiobookshelf if it's enabled
-      if (authInfo.available_methods.audiobookshelf) {
-        const clientOrigin = request.headers.get("origin") || "";
-        const user = await api.getUser(clientOrigin, userToken);
-        if (user) {
-          // Ensure accessToken is available
-          if (!user.accessToken && user.token) {
-            user.accessToken = user.token;
-          }
-          // Mark as audiobookshelf auth
-          user.auth_source = "audiobookshelf";
-
-          console.log("User authenticated via audiobookshelf fallback");
-          return user;
+      if (userInfo && userInfo.user) {
+        // Ensure accessToken is available for compatibility
+        if (!userInfo.user.accessToken && userInfo.user.token) {
+          userInfo.user.accessToken = userInfo.user.token;
         }
-      }
-    } catch (absError) {
-      console.error("Failed to get user from Audiobookshelf:", absError);
-    }
-  }
 
-  // If we get here, authentication failed
-  console.error(
-    "Authentication failed completely, logging out. UserToken was:",
-    !!userToken
-  );
-  throw await logout(request);
+        console.debug(`User type: ${userInfo.user.type}`);
+        console.log(
+          `User authenticated via ${userInfo.user.auth_source} (session cookie)`
+        );
+
+        return userInfo.user;
+      }
+    }
+
+    // If server session validation fails, user is not authenticated
+    console.log(
+      "Server session validation failed or returned invalid response"
+    );
+    return null;
+  } catch (error) {
+    console.error("Failed to validate server session:", error);
+    return null;
+  }
 }
 
 export async function logout(request: Request) {
-  const session = await getSession(request);
-  const userToken = session.get(USER_SESSION_KEY);
+  console.log("Logout called, clearing server session");
 
-  // Try to logout from the server if we have a token
-  if (userToken) {
-    try {
-      // Get the current user to determine auth source
-      const userInfo = await localApi.getUserInfo(userToken).catch(() => null);
-      const authSource = userInfo?.auth_source;
-
-      console.log(
-        `Logging out user with auth source: ${authSource || "unknown"}`
-      );
-
-      if (authSource === "oidc") {
-        // Use OIDC logout for OIDC users
-        await localApi.oidcLogout();
-      } else if (authSource === "audiobookshelf") {
-        // Use Audiobookshelf logout for Audiobookshelf users
-        const clientOrigin = request.headers.get("origin") || "";
-        await api.logout(clientOrigin);
-      } else {
-        // If auth source is unknown, try both methods
-        try {
-          await localApi.oidcLogout();
-        } catch (oidcError) {
-          console.error("OIDC logout error:", oidcError);
-          try {
-            const clientOrigin = request.headers.get("origin") || "";
-            await api.logout(clientOrigin);
-          } catch (absError) {
-            console.error("Audiobookshelf logout error:", absError);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Continue with session destruction even if logout API calls fail
-    }
+  try {
+    // Call server logout endpoint to clear the session cookie
+    const serverUrl =
+      process.env.SEEKLIT_SERVER_URL || new URL(request.url).origin;
+    await fetch(`${serverUrl}/api/v1/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: request.headers.get("Cookie") || "",
+      },
+    });
+    console.log("Server logout completed");
+  } catch (error) {
+    console.error("Server logout error:", error);
+    // Continue with redirect even if server logout fails
   }
 
-  // Always destroy the session regardless of logout API success
+  // Clear any legacy Remix session data and redirect
+  const session = await getSession(request);
   return redirect("/auth", {
     headers: {
       "Set-Cookie": await sessionStorage.destroySession(session),

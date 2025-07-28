@@ -62,15 +62,15 @@ export default function SettingsPage() {
     typeof window !== "undefined" ? window.location.origin : "";
 
   React.useEffect(() => {
-    const getServerConfig = async (token: string) => {
-      const res = await localApi.getServerConfig(token);
+    const getServerConfig = async () => {
+      const res = await localApi.getServerConfig();
       setConfig(res);
     };
 
-    const getUserPreferences = async (token: string) => {
+    const getUserPreferences = async () => {
       setIsLoadingPrefs(true);
       try {
-        const prefs = await localApi.getUserPreferences(token);
+        const prefs = await localApi.getUserPreferences();
         setUserPreferences(prefs);
       } catch (error) {
         console.error("Failed to load user preferences:", error);
@@ -85,8 +85,8 @@ export default function SettingsPage() {
     };
 
     if (user) {
-      getServerConfig(user.accessToken);
-      getUserPreferences(user.accessToken);
+      getServerConfig();
+      getUserPreferences();
     }
   }, [user, toast]);
 
@@ -95,13 +95,10 @@ export default function SettingsPage() {
 
     setIsSavingPrefs(true);
     try {
-      const updatedPrefs = await localApi.updateUserPreferences(
-        user.accessToken,
-        {
-          email: userPreferences.email,
-          notificationsEnabled: userPreferences.notificationsEnabled,
-        }
-      );
+      const updatedPrefs = await localApi.updateUserPreferences({
+        email: userPreferences.email,
+        notificationsEnabled: userPreferences.notificationsEnabled,
+      });
       setUserPreferences(updatedPrefs);
       toast({
         title: "Success",
@@ -141,7 +138,7 @@ export default function SettingsPage() {
 
     setIsSendingVerification(true);
     try {
-      await localApi.sendEmailVerification(user.accessToken);
+      await localApi.sendEmailVerification();
       toast({
         title: "Verification Email Sent",
         description: "Please check your email for the verification code",
@@ -163,9 +160,9 @@ export default function SettingsPage() {
 
     setIsVerifyingEmail(true);
     try {
-      await localApi.verifyEmail(user.accessToken, verificationCode.trim());
+      await localApi.verifyEmail(verificationCode.trim());
       // Refresh user preferences to get updated verification status
-      const updatedPrefs = await localApi.getUserPreferences(user.accessToken);
+      const updatedPrefs = await localApi.getUserPreferences();
       setUserPreferences(updatedPrefs);
       setVerificationCode("");
       toast({
@@ -230,26 +227,8 @@ export default function SettingsPage() {
                       <InfoIcon className="h-4 w-4" color="#0D47A1" />
                       <AlertTitle>Account Management</AlertTitle>
                       <AlertDescription>
-                        {user?.auth_source === "audiobookshelf" ? (
-                          <>
-                            Your account details are managed in{" "}
-                            <a
-                              className="underline"
-                              href={getEnvVal(
-                                import.meta.env.VITE_ABS_EXTERNAL_URL,
-                                clientOrigin
-                              )}
-                            >
-                              Audiobookshelf
-                            </a>
-                            .
-                          </>
-                        ) : (
-                          <>
-                            Your account is managed by your organization's OIDC
-                            provider.
-                          </>
-                        )}
+                        Your account is managed by your organization's OIDC
+                        provider.
                       </AlertDescription>
                     </Alert>
                     <div className="space-y-2">
@@ -265,24 +244,13 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-2">
                         <Input
                           id="auth-source"
-                          value={
-                            user?.auth_source === "oidc"
-                              ? "OpenID Connect (OIDC)"
-                              : "Audiobookshelf"
-                          }
+                          value="OpenID Connect (OIDC)"
                           disabled
                           className="max-w-xs"
                         />
-                        {user?.auth_source === "oidc" && (
-                          <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                            OIDC
-                          </div>
-                        )}
-                        {user?.auth_source === "audiobookshelf" && (
-                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded">
-                            ABS
-                          </div>
-                        )}
+                        <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                          OIDC
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -372,11 +340,7 @@ export default function SettingsPage() {
               </TabsContent>
               {isAdmin(user) && (
                 <TabsContent value="admin">
-                  <AdminConfiguration
-                    config={config}
-                    setConfig={setConfig}
-                    userToken={user?.accessToken || ""}
-                  />
+                  <AdminConfiguration config={config} setConfig={setConfig} />
                 </TabsContent>
               )}
             </Tabs>

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"api/helpers"
+	"api/lib"
 	"api/middlewares"
+	"api/models"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -25,14 +27,6 @@ type AuthController struct {
 // @Failure 500 {object} map[string]string
 // @router /login [get]
 func (c *AuthController) Login() {
-	// Check if OIDC is enabled
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-	if authMethod != "oidc" && authMethod != "both" {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = map[string]string{"error": "OIDC login not available"}
-		c.ServeJSON()
-		return
-	}
 
 	logs.Info("Retrieving config")
 
@@ -82,25 +76,19 @@ func (c *AuthController) Login() {
 
 // @Title AuthInfo
 // @Description Get available authentication methods and configuration
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @router /info [get]
 func (c *AuthController) AuthInfo() {
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-
-	// Check if OIDC is actually available (not just configured)
-	oidcAvailable := false
-	if authMethod == "oidc" || authMethod == "both" {
-		// OIDC is only available if both provider and config are initialized
-		oidcAvailable = middlewares.GetOIDCProvider() != nil && middlewares.GetOAuth2Config() != nil
-	}
+	// OIDC is only available if both provider and config are initialized
+	oidcAvailable := middlewares.GetOIDCProvider() != nil && middlewares.GetOAuth2Config() != nil
 
 	// Get auto-redirect setting
 	autoRedirect := config.DefaultBool("auth::autoredirect", true)
 
-	info := map[string]interface{}{
-		"method": authMethod,
+	info := map[string]any{
+		"method": "oidc",
 		"available_methods": map[string]bool{
-			"audiobookshelf": authMethod == "audiobookshelf" || authMethod == "both",
+			"audiobookshelf": false,
 			"oidc":           oidcAvailable,
 		},
 		"auto_redirect": autoRedirect,
@@ -108,7 +96,7 @@ func (c *AuthController) AuthInfo() {
 
 	// Add OIDC-specific info if available
 	if oidcAvailable {
-		info["oidc"] = map[string]interface{}{
+		info["oidc"] = map[string]any{
 			"login_url":    "/api/v1/auth/login",
 			"callback_url": "/api/v1/auth/callback",
 		}
@@ -122,19 +110,11 @@ func (c *AuthController) AuthInfo() {
 // @Description Handle OIDC callback
 // @Param code query string true "Authorization code"
 // @Param state query string true "State parameter"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @router /callback [get]
 func (c *AuthController) Callback() {
-	// Check if OIDC is enabled
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-	if authMethod != "oidc" && authMethod != "both" {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = map[string]string{"error": "OIDC callback not available"}
-		c.ServeJSON()
-		return
-	}
 	// Verify state parameter
 	state := c.GetString("state")
 	sessionHelper := helpers.NewSessionHelper(&c.Controller)
@@ -223,104 +203,75 @@ func (c *AuthController) Callback() {
 		return
 	}
 
-	// Store tokens in session for the frontend to retrieve
-	err = sessionHelper.Set("access_token", oauth2Token.AccessToken)
-	if err != nil {
-		logs.Error("Failed to store access token in session: %v", err)
-	}
+	// Get user permissions from OIDC claims
+	permissions := getUserPermissionsFromClaims(claims)
 
-	err = sessionHelper.Set("id_token", rawIDToken)
-	if err != nil {
-		logs.Error("Failed to store ID token in session: %v", err)
-	}
-
-	if oauth2Token.RefreshToken != "" {
-		err = sessionHelper.Set("refresh_token", oauth2Token.RefreshToken)
-		if err != nil {
-			logs.Error("Failed to store refresh token in session: %v", err)
-		}
-	}
-
-	// Determine user type based on admin permissions (same logic as middleware)
+	// Determine user type based on admin permissions
 	userType := "user"
-
-	// Check for admin roles/groups (same logic as in middlewares/oidc.go)
-	adminRoles := []string{"admin", "administrator", "seeklit-admin"}
-	adminGroups := []string{"admin", "administrators", "seeklit-admin"}
-
-	// Check roles first
-	for _, role := range claims.Roles {
-		for _, adminRole := range adminRoles {
-			if strings.EqualFold(role, adminRole) {
-				userType = "admin"
-				break
-			}
-		}
-		if userType == "admin" {
-			break
-		}
+	if permissions.Update && permissions.Delete && permissions.Upload {
+		userType = "admin"
 	}
 
-	// Check groups if not already admin
-	if userType != "admin" {
-		for _, group := range claims.Groups {
-			for _, adminGroup := range adminGroups {
-				if strings.EqualFold(group, adminGroup) {
-					userType = "admin"
-					break
-				}
-			}
-			if userType == "admin" {
-				break
-			}
-		}
+	// Create a new session with our own token
+	sessionStore := lib.GetSessionStore()
+	sessionToken, err := sessionStore.CreateAuthSession(
+		claims.Sub,
+		getPreferredUsername(claims),
+		claims.Email,
+		claims.Name,
+		userType,
+		claims.Groups,
+		claims.Roles,
+		"oidc",
+		permissions,
+	)
+	if err != nil {
+		logs.Error("Failed to create session: %v", err)
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = map[string]string{"error": "Failed to create session"}
+		c.ServeJSON()
+		return
 	}
 
-	// Store user info in session
-	userInfo := map[string]interface{}{
-		"id":       claims.Sub,
-		"username": getPreferredUsername(claims),
-		"email":    claims.Email,
-		"name":     claims.Name,
-		"groups":   claims.Groups,
-		"roles":    claims.Roles,
-		"type":     userType,
-	}
+	// Set secure session cookie
+	cookieHelper := helpers.NewCookieHelper(&c.Controller)
+	sessionDuration := config.DefaultInt("auth::session_duration_hours", 24)
+	cookieHelper.SetSessionCookie(sessionToken, sessionDuration*3600) // Convert hours to seconds
 
-	logs.Debug("OIDC callback - storing user info in session: user=%s, type=%s, roles=%v, groups=%v",
+	logs.Debug("OIDC callback - created session for user: %s, type: %s, roles: %v, groups: %v",
 		getPreferredUsername(claims), userType, claims.Roles, claims.Groups)
 
-	err = sessionHelper.Set("user_info", userInfo)
-	if err != nil {
-		logs.Error("Failed to store user info in session: %v", err)
-	}
-
-	// Create a session token that matches the expected format
-	// Use the ID token as the session token for consistency
-	sessionToken := rawIDToken
-	err = sessionHelper.Set("session_token", sessionToken)
-	if err != nil {
-		logs.Error("Failed to store session token: %v", err)
-	}
-
-	// Redirect to frontend auth callback route with token parameter
-	redirectURL := "/auth/callback?success=true&token=" + sessionToken
+	// Redirect to frontend auth callback route
+	redirectURL := "/auth/callback?success=true"
 
 	logs.Info("Redirecting to frontend: %s", redirectURL)
 	c.Redirect(redirectURL, http.StatusFound)
 }
 
 // @Title Logout
-// @Description Logout user and optionally redirect to OIDC provider logout
+// @Description Logout user and clear session
 // @Success 200 {object} map[string]string
 // @router /logout [post]
 func (c *AuthController) Logout() {
-	// Clear any server-side session data using our custom session helper
+	// Get session token from cookie
+	cookieHelper := helpers.NewCookieHelper(&c.Controller)
+	sessionToken := cookieHelper.GetSessionCookie()
+
+	if sessionToken != "" {
+		// Delete the session from our session store
+		sessionStore := lib.GetSessionStore()
+		sessionStore.DestroySession(sessionToken)
+
+		logs.Debug("Logged out user with session token: %s", sessionToken[:8]+"...")
+	}
+
+	// Clear the session cookie
+	cookieHelper.ClearSessionCookie()
+
+	// Clear any legacy session data
 	sessionHelper := helpers.NewSessionHelper(&c.Controller)
 	sessionHelper.Destroy()
 
-	// You might want to redirect to the OIDC provider's logout endpoint
-	// This depends on your OIDC provider's capabilities
 	c.Data["json"] = map[string]string{"message": "Logged out successfully"}
 	c.ServeJSON()
 }
@@ -354,72 +305,51 @@ func (c *AuthController) UserInfo() {
 }
 
 // @Title GetAuthTokens
-// @Description Get authentication tokens from session after OAuth callback
-// @Success 200 {object} map[string]interface{}
+// @Description Get current user information from session cookie
+// @Success 200 {object} map[string]any
 // @Failure 401 {object} map[string]string
 // @router /tokens [get]
 func (c *AuthController) GetAuthTokens() {
-	sessionHelper := helpers.NewSessionHelper(&c.Controller)
+	// Get session token from cookie
+	cookieHelper := helpers.NewCookieHelper(&c.Controller)
+	sessionToken := cookieHelper.GetSessionCookie()
 
-	// Check if tokens exist in session
-	accessToken, hasAccess := sessionHelper.Get("access_token")
-	idToken, hasID := sessionHelper.Get("id_token")
-	userInfo, hasUser := sessionHelper.Get("user_info")
-	sessionToken, hasSession := sessionHelper.Get("session_token")
-
-	if !hasAccess || !hasID || !hasUser {
+	if sessionToken == "" {
 		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
-		c.Data["json"] = map[string]string{"error": "No authentication tokens found"}
+		c.Data["json"] = map[string]string{"error": "No session cookie found"}
 		c.ServeJSON()
 		return
 	}
 
-	// Get refresh token if it exists
-	refreshToken, _ := sessionHelper.Get("refresh_token")
-
-	// Use session token if available, otherwise fall back to ID token
-	mainToken := idToken
-	if hasSession && sessionToken != nil {
-		mainToken = sessionToken
-	}
-
-	// Convert accessToken to string for use in response
-	accessTokenStr, _ := accessToken.(string)
-
-	// Format response to match what the client expects (similar to Audiobookshelf format)
-	userInfoMap, ok := userInfo.(map[string]interface{})
-	if !ok {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "Invalid user info format"}
+	// Get session data
+	sessionStore := lib.GetSessionStore()
+	sessionData, exists := sessionStore.GetAuthSession(sessionToken)
+	if !exists {
+		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
+		c.Data["json"] = map[string]string{"error": "Invalid or expired session"}
 		c.ServeJSON()
 		return
 	}
 
-	// Create user object with token field that client expects
-	user := map[string]interface{}{
-		"id":           userInfoMap["id"],
-		"username":     userInfoMap["username"],
-		"email":        userInfoMap["email"],
-		"name":         userInfoMap["name"],
-		"groups":       userInfoMap["groups"],
-		"roles":        userInfoMap["roles"],
-		"type":         userInfoMap["type"], // Include user type for admin detection
-		"token":        mainToken,           // Use session token or ID token as main token
-		"accessToken":  accessTokenStr,      // Provide the actual access token
-		"refreshToken": refreshToken,        // And refresh token if available
-		"auth_source":  "oidc",
+	// Create user object that matches client expectations
+	user := map[string]any{
+		"id":          sessionData.UserID,
+		"username":    sessionData.Username,
+		"email":       sessionData.Email,
+		"name":        sessionData.Name,
+		"groups":      sessionData.Groups,
+		"roles":       sessionData.Roles,
+		"type":        sessionData.UserType,
+		"token":       sessionToken, // Provide session token for compatibility
+		"auth_source": sessionData.AuthSource,
+		"permissions": sessionData.Permissions,
 	}
 
-	response := map[string]interface{}{
-		"user":   user,
-		"cookie": mainToken, // Add cookie field to match Audiobookshelf response format
+	response := map[string]any{
+		"user":        user,
+		"auth_source": sessionData.AuthSource, // Add auth_source at top level for compatibility
+		"cookie":      sessionToken,           // Add cookie field to match expected format
 	}
-
-	// Clear tokens from session after retrieval (optional - depends on your security requirements)
-	// sessionHelper.Delete("access_token")
-	// sessionHelper.Delete("id_token")
-	// sessionHelper.Delete("refresh_token")
-	// sessionHelper.Delete("user_info")
 
 	c.Data["json"] = response
 	c.ServeJSON()
@@ -453,4 +383,53 @@ func getPreferredUsername(claims struct {
 		return claims.Email
 	}
 	return claims.Sub
+}
+
+func getUserPermissionsFromClaims(claims struct {
+	Sub               string   `json:"sub"`
+	Name              string   `json:"name"`
+	PreferredUsername string   `json:"preferred_username"`
+	Email             string   `json:"email"`
+	EmailVerified     bool     `json:"email_verified"`
+	Groups            []string `json:"groups"`
+	Roles             []string `json:"roles"`
+}) models.UserPermissions {
+	// Default permissions for regular users
+	permissions := models.UserPermissions{
+		Download:              true,
+		Update:                false,
+		Delete:                false,
+		Upload:                false,
+		AccessAllLibraries:    true,
+		AccessAllTags:         true,
+		AccessExplicitContent: true,
+	}
+
+	// Check for admin roles/groups
+	adminRoles := []string{"admin", "administrator", "seeklit-admin"}
+	adminGroups := []string{"admin", "administrators", "seeklit-admin"}
+
+	for _, role := range claims.Roles {
+		for _, adminRole := range adminRoles {
+			if strings.EqualFold(role, adminRole) {
+				permissions.Update = true
+				permissions.Delete = true
+				permissions.Upload = true
+				return permissions
+			}
+		}
+	}
+
+	for _, group := range claims.Groups {
+		for _, adminGroup := range adminGroups {
+			if strings.EqualFold(group, adminGroup) {
+				permissions.Update = true
+				permissions.Delete = true
+				permissions.Upload = true
+				return permissions
+			}
+		}
+	}
+
+	return permissions
 }

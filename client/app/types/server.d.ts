@@ -95,7 +95,7 @@ type UserPreferences = {
 };
 
 type AuthInfo = {
-  method: "audiobookshelf" | "oidc" | "both";
+  method: "oidc";
   available_methods: {
     audiobookshelf: boolean;
     oidc: boolean;
@@ -110,5 +110,5 @@ type AuthInfo = {
 
 type UserInfoResponse = {
   user: User;
-  auth_source: "audiobookshelf" | "oidc";
+  auth_source: "oidc";
 };

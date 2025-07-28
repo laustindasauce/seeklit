@@ -338,36 +338,18 @@ func (s *SearchController) HardcoverSearch() {
 // @Success 200 {object} map[string]any
 // @router /personalized [get]
 func (s *SearchController) PersonalizedSearch() {
-	user := middlewares.GetUser(s.Ctx)
+	middlewares.GetUser(s.Ctx)
 
-	// Get auth method from config with default fallback
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-
-	var token string
-
-	// Determine which token to use based on auth method
-	switch authMethod {
-	case "oidc":
-		absApiKey := config.DefaultString("general::audiobookshelfapikey", "")
-		// For OIDC-only auth, fail if api key is empty
-		if absApiKey == "" {
-			logs.Critical("audiobookshelfapikey is empty and auth method is OIDC. Unable to perform personalized search.")
-			s.Ctx.Output.SetStatus(http.StatusUnauthorized)
-			s.Data["json"] = map[string]string{"error": "Audiobookshelf API Key required for recent books."}
-			s.ServeJSON()
-			return
-		}
-		token = absApiKey
-	case "audiobookshelf", "both":
-		// Try API key first, fallback to user token
-		token = config.DefaultString("general::audiobookshelfapikey", user.Token)
-	default:
-		logs.Critical("Unknown auth method: %s. Unable to perform personalized search.", authMethod)
-		s.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		s.Data["json"] = map[string]string{"error": "Invalid authentication configuration."}
+	// For OIDC-only auth, use the configured API key
+	absApiKey := config.DefaultString("general::audiobookshelfapikey", "")
+	if absApiKey == "" {
+		logs.Critical("audiobookshelfapikey is empty. Unable to perform personalized search.")
+		s.Ctx.Output.SetStatus(http.StatusUnauthorized)
+		s.Data["json"] = map[string]string{"error": "Audiobookshelf API Key required for recent books."}
 		s.ServeJSON()
 		return
 	}
+	token := absApiKey
 
 	absResults, err := handleAbsPersonalizedSearch(token)
 	if err != nil {
@@ -420,7 +402,7 @@ func handleAbsPersonalizedSearch(token string) ([]any, error) {
 		logs.Debug("Getting recently added books for library: %s", id)
 		recentlyAddedBooks, err := getPersonalizedLibrary(token, id)
 		if err != nil {
-			logs.Warning("Unable to search libraries %v", err)
+			logs.Debug("Unable to search libraries %v", err)
 			continue
 		}
 
@@ -439,7 +421,7 @@ func handleAbsPersonalizedSearch(token string) ([]any, error) {
 func getPersonalizedLibrary(token, libraryId string) ([]any, error) {
 	absUrl, err := config.String("general::audiobookshelfurl")
 	if err != nil || absUrl == "" {
-		logs.Critical("Missing general::audiobookshelfurl config... Unable to authenticate.")
+		logs.Critical("Missing general::audiobookshelfurl config... Unable to access Audiobookshelf data.")
 		return []any{}, fmt.Errorf("missing general::audiobookshelfurl config")
 	}
 
@@ -505,7 +487,7 @@ func getLibraries(token string) ([]string, error) {
 	logs.Info("Retrieving Audiobookshelf libraries...")
 	absUrl, err := config.String("general::audiobookshelfurl")
 	if err != nil || absUrl == "" {
-		logs.Critical("Missing general::audiobookshelfurl config... Unable to authenticate.")
+		logs.Critical("Missing general::audiobookshelfurl config... Unable to access Audiobookshelf data.")
 		return []string{}, fmt.Errorf("Missing general::audiobookshelfurl config")
 	}
 
@@ -564,7 +546,7 @@ func getAuthorBooks(token, authorID string) ([]any, error) {
 	logs.Info("Retrieving books for author...")
 	absUrl, err := config.String("general::audiobookshelfurl")
 	if err != nil || absUrl == "" {
-		logs.Critical("Missing general::audiobookshelfurl config... Unable to authenticate.")
+		logs.Critical("Missing general::audiobookshelfurl config... Unable to access Audiobookshelf data.")
 		return nil, fmt.Errorf("Missing general::audiobookshelfurl config")
 	}
 
@@ -618,7 +600,7 @@ func searchLibraries(token string, libraryIds []string, q string) ([]any, error)
 	logs.Info("Searching Audiobookshelf libraries for %s...", q)
 	absUrl, err := config.String("general::audiobookshelfurl")
 	if err != nil || absUrl == "" {
-		logs.Critical("Missing general::audiobookshelfurl config... Unable to authenticate.")
+		logs.Critical("Missing general::audiobookshelfurl config... Unable to access Audiobookshelf data.")
 		return nil, fmt.Errorf("Missing general::audiobookshelfurl config")
 	}
 

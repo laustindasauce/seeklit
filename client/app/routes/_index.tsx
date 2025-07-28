@@ -104,7 +104,7 @@ export default function IndexHandler() {
     try {
       switch (provider) {
         case "GOOGLE": {
-          const data = await localApi.googleSearch(token, query);
+          const data = await localApi.googleSearch(query);
           externalData = (data.search_results as GoogleBook[]).map(
             transformGoogleBook
           );
@@ -114,7 +114,7 @@ export default function IndexHandler() {
           break;
         }
         case "OPENLIBRARY": {
-          const data = await localApi.openlibSearch(token, query);
+          const data = await localApi.openlibSearch(query);
           const searchRes = data.search_results as OpenLibraryResponse;
           externalData = (searchRes.docs || []).map(transformOpenLibraryBook);
           absData = (data.abs_results as BookItem[]).map((book) =>
@@ -123,7 +123,7 @@ export default function IndexHandler() {
           break;
         }
         case "HARDCOVER": {
-          const data = await localApi.hardcoverSearch(token, query);
+          const data = await localApi.hardcoverSearch(query);
           externalData = (data.search_results as HardcoverBook[]).map(
             transformHardcoverBook
           );
@@ -180,7 +180,7 @@ export default function IndexHandler() {
 
     setIsLoadingRecent(true);
     localApi
-      .getRecentBooks(window.location.origin, user.accessToken)
+      .getRecentBooks(window.location.origin)
       .then((res) => {
         setRecentBooks(res.abs_results);
       })
@@ -201,7 +201,7 @@ export default function IndexHandler() {
     }
 
     localApi
-      .getUsers(user.accessToken)
+      .getUsers()
       .then((res) => {
         setUsers(res.users);
       })
@@ -236,7 +236,7 @@ export default function IndexHandler() {
       return;
     }
     try {
-      await localApi.createNewRequest(user.accessToken, req);
+      await localApi.createNewRequest(req);
 
       toast({
         title: "New Book Request",
@@ -258,7 +258,7 @@ export default function IndexHandler() {
       issue.creator_id = user.id;
       issue.creator_username = user.username;
 
-      await localApi.createNewIssue(user.accessToken, issue);
+      await localApi.createNewIssue(issue);
 
       toast({
         title: "New Issue",
