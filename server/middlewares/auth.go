@@ -1,6 +1,8 @@
 package middlewares
 
 import (
+	"api/helpers"
+	"api/lib"
 	"net/http"
 	"strings"
 
@@ -9,20 +11,46 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// AuthMiddleware is a unified middleware that supports both OIDC and Audiobookshelf authentication
+// AuthMiddleware is a unified middleware that supports session cookies, OIDC, and Audiobookshelf authentication
 func AuthMiddleware(ctx *context.Context) {
+	// First try to get token from Authorization header
 	authHeader := ctx.Request.Header.Get("Authorization")
-	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-		respondWithAuthError(ctx, "missing or invalid token")
+	var token string
+	var fromCookie bool
+	
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		token = strings.TrimPrefix(authHeader, "Bearer ")
+		fromCookie = false
+	} else {
+		// Fall back to session cookie
+		token = ctx.GetCookie(helpers.SessionCookieName)
+		fromCookie = true
+	}
+
+	if token == "" {
+		respondWithAuthError(ctx, "missing authentication token or session")
 		return
 	}
 
-	token := strings.TrimPrefix(authHeader, "Bearer ")
+	var user interface{}
+	var authSource string
 
-	// Determine which authentication method to use based on configuration
-	authMethod := config.DefaultString("auth::method", "audiobookshelf")
-	
-	user, authSource := authenticateToken(token, authMethod)
+	// If token came from cookie, try session authentication first
+	if fromCookie {
+		sessionStore := lib.GetSessionStore()
+		if sessionData, exists := sessionStore.GetAuthSession(token); exists {
+			user = sessionStore.GetUserFromAuthSession(sessionData)
+			authSource = sessionData.AuthSource
+			logs.Debug("Successfully authenticated via session cookie (source: %s)", authSource)
+		}
+	}
+
+	// If session auth failed or token came from header, try other methods
+	if user == nil {
+		authMethod := config.DefaultString("auth::method", "audiobookshelf")
+		user, authSource = authenticateToken(token, authMethod)
+	}
+
 	if user == nil {
 		respondWithAuthError(ctx, "invalid or expired token")
 		return

@@ -16,10 +16,8 @@ export function useTheme(user?: User | null) {
   useEffect(() => {
     const loadThemeFromServer = async () => {
       try {
-        if (user?.accessToken) {
-          const preferences = await localApi.getUserPreferences(
-            user.accessToken
-          );
+        if (user) {
+          const preferences = await localApi.getUserPreferences();
           if (preferences.theme) {
             setTheme(preferences.theme);
             localStorage.setItem("theme", preferences.theme);
@@ -56,10 +54,10 @@ export function useTheme(user?: User | null) {
     localStorage.setItem("theme", theme);
 
     // Save to server if loaded and user is authenticated
-    if (isLoaded && user?.accessToken) {
+    if (isLoaded && user) {
       const saveThemeToServer = async () => {
         try {
-          await localApi.updateUserPreferences(user.accessToken, { theme });
+          await localApi.updateUserPreferences({ theme });
         } catch (error) {
           console.debug("Could not save theme to server:", error);
         }

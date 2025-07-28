@@ -1,6 +1,32 @@
 // api.ts
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
 import { getEnvVal } from "./utils";
+
+// Helper function to extract useful error information
+const getErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError;
+
+    // If we have a response, extract the error message
+    if (axiosError.response?.data) {
+      const data = axiosError.response.data as any;
+      if (data.message) return data.message;
+      if (data.error) return data.error;
+      if (typeof data === "string") return data;
+    }
+
+    // If no response data, use status text or generic message
+    if (axiosError.response?.statusText) {
+      return `${axiosError.response.status}: ${axiosError.response.statusText}`;
+    }
+
+    // Network or other axios errors
+    if (axiosError.message) return axiosError.message;
+  }
+
+  // Fallback for non-axios errors
+  return error instanceof Error ? error.message : "Unknown error occurred";
+};
 
 const getApiClient = (baseUrl: string) => {
   // Use environment variable if available, otherwise use provided baseUrl
@@ -43,8 +69,9 @@ const login = async (baseUrl: string, username: string, password: string) => {
 
     return response.data;
   } catch (error) {
-    console.error("Login error:", error);
-    throw error;
+    const errorMessage = getErrorMessage(error);
+    console.error("Login error:", errorMessage);
+    throw new Error(errorMessage);
   }
 };
 
@@ -55,8 +82,9 @@ const logout = async (baseUrl: string) => {
     const response = await apiClient.post("/logout");
     return response.data;
   } catch (error) {
-    console.error("Logout error:", error);
-    throw error;
+    const errorMessage = getErrorMessage(error);
+    console.error("Logout error:", errorMessage);
+    throw new Error(errorMessage);
   }
 };
 
@@ -71,8 +99,9 @@ const getUser = async (baseUrl: string, token: string) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Get user error:", error);
-    throw error;
+    const errorMessage = getErrorMessage(error);
+    console.error("Get user error:", errorMessage);
+    throw new Error(errorMessage);
   }
 };
 
@@ -89,8 +118,9 @@ const getUsers = async (baseUrl: string, token: string) => {
     );
     return response.data;
   } catch (error) {
-    console.error("Unable to get users");
-    throw error;
+    const errorMessage = getErrorMessage(error);
+    console.error("Unable to get users:", errorMessage);
+    throw new Error(errorMessage);
   }
 };
 

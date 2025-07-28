@@ -19,13 +19,11 @@ import React from "react";
 interface AdminConfigurationProps {
   config: ServerConfig;
   setConfig: React.Dispatch<React.SetStateAction<ServerConfig>>;
-  userToken: string;
 }
 
 export default function AdminConfiguration({
   config,
   setConfig,
-  userToken,
 }: AdminConfigurationProps) {
   const [visibleSecrets, setVisibleSecrets] = React.useState<
     Record<string, boolean>
@@ -70,7 +68,7 @@ export default function AdminConfiguration({
     try {
       const configKey = `${section}::${key}`;
 
-      await localApi.updateServerConfig(userToken, {
+      await localApi.updateServerConfig({
         key: configKey,
         value,
       });

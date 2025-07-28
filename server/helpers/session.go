@@ -8,10 +8,6 @@ import (
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-const (
-	SessionCookieName = "session_id"
-)
-
 // SessionHelper provides session functionality for Beego controllers
 type SessionHelper struct {
 	controller *beego.Controller

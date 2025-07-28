@@ -420,7 +420,7 @@ func handleAbsPersonalizedSearch(token string) ([]any, error) {
 		logs.Debug("Getting recently added books for library: %s", id)
 		recentlyAddedBooks, err := getPersonalizedLibrary(token, id)
 		if err != nil {
-			logs.Warning("Unable to search libraries %v", err)
+			logs.Debug("Unable to search libraries %v", err)
 			continue
 		}
 

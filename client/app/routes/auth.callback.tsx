@@ -3,7 +3,7 @@ import { createUserSession } from "@/session.server";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "@remix-run/react";
 
-// Handle session creation on the server side for successful callbacks
+// Handle session validation on the server side for successful callbacks
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs) => {
@@ -16,28 +16,15 @@ export const loader: LoaderFunction = async ({
     return redirect("/auth?error=" + encodeURIComponent(error));
   }
 
-  // If this is a successful callback, try to create a session
+  // If this is a successful callback, the server has already set the session cookie
   if (success === "true") {
-    // Check if we have a token in the URL first
-    const urlToken = url.searchParams.get("token");
-    if (urlToken) {
-      console.log("Token found in URL, creating session from server-side");
-      try {
-        return await createUserSession({
-          request,
-          userToken: urlToken,
-        });
-      } catch (error) {
-        console.error("Failed to create session from URL token:", error);
-      }
-    }
+    console.log(
+      "Successful auth callback, server should have set session cookie"
+    );
 
-    // Fallback: try to get tokens from the server session
+    // Test if the session cookie is working by trying to get user info
     try {
-      // Determine the server URL for SSR
       const serverUrl = process.env.SEEKLIT_SERVER_URL || url.origin;
-
-      // Try to get tokens from the server session
       const response = await fetch(`${serverUrl}/api/v1/auth/tokens`, {
         method: "GET",
         headers: {
@@ -46,29 +33,20 @@ export const loader: LoaderFunction = async ({
         },
       });
 
-      console.log("Tokens response status: ", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        // Use cookie field first (matches Audiobookshelf format), then fall back to ID token
-        const token = data.cookie || data.id_token;
-
-        console.log("Token retrieved from session: ", !!token);
-
-        if (token) {
-          // Create Remix session with the token
-          return await createUserSession({
-            request,
-            userToken: token,
-          });
+        if (data.user) {
+          console.log("Session cookie is valid, redirecting to home");
+          // Session is valid, redirect to home
+          return redirect("/");
         }
       }
     } catch (error) {
-      console.error("Failed to create session from server tokens:", error);
+      console.error("Failed to validate session cookie:", error);
     }
   }
 
-  // Otherwise, let the client-side component handle the callback
+  // Let the client-side component handle the callback if server-side validation fails
   return {};
 };
 
@@ -108,120 +86,50 @@ export default function OIDCCallback() {
           return;
         }
 
-        // Check if we have a token in the URL (from server redirect)
-        const urlToken = searchParams.get("token");
-        if (urlToken) {
-          console.log("Token found in URL, creating session directly");
-          setStatus("Creating session...");
-
-          // Create session with the token from URL
-          try {
-            const response = await fetch("/auth/session", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ token: urlToken }),
-              credentials: "include",
-            });
-
-            if (response.ok) {
-              console.log("Session created successfully");
-              setStatus("Authentication successful! Redirecting...");
-              setTimeout(() => navigate("/"), 1000);
-              return;
-            } else {
-              console.error("Failed to create session with URL token");
-              // Fall through to token retrieval method
-            }
-          } catch (error) {
-            console.error("Error creating session with URL token:", error);
-            // Fall through to token retrieval method
-          }
-        }
-
         setStatus("Verifying authentication...");
 
-        // Server has already processed the OAuth callback and stored tokens in session
-        // Let's test if the session is working by trying to access a protected endpoint
+        // Server has already processed the OAuth callback and set the session cookie
+        // Test if the session is working by trying to get user info
         try {
-          // Try to access the home page - if the session is valid, this should work
-          const testResponse = await fetch("/", {
+          const response = await fetch("/api/v1/auth/tokens", {
             method: "GET",
-            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // This will send the session cookie
           });
 
-          if (testResponse.ok) {
-            console.log("Session appears to be valid");
-            setStatus("Authentication successful! Redirecting...");
+          console.log("Session validation response status:", response.status);
 
-            // Navigate to home page
-            setTimeout(() => navigate("/"), 1000);
-          } else {
-            // Session might not be working, let's try to get tokens and create a new session
-            console.log("Session test failed, trying to retrieve tokens...");
-
-            const response = await fetch("/api/v1/auth/tokens", {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              credentials: "include",
-            });
-
-            console.log("Token fetch response status:", response.status);
-
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              const errorMsg =
-                errorData.error || "Failed to retrieve authentication tokens";
-              console.error("Failed to get tokens:", errorData);
-              setError(errorMsg);
-              setTimeout(
-                () => navigate(`/auth?error=${encodeURIComponent(errorMsg)}`),
-                2000
-              );
-              return;
-            }
-
+          if (response.ok) {
             const data = await response.json();
-            console.log("Token data received:", {
-              hasAccessToken: !!data.access_token,
-              hasIdToken: !!data.id_token,
-              hasRefreshToken: !!data.refresh_token,
-              hasUser: !!data.user,
-              userInfo: data.user,
-            });
-
-            // Use the cookie field first (matches Audiobookshelf format), then fall back to ID token
-            const token = data.cookie || data.id_token;
-
-            if (!token) {
-              const errorMsg =
-                "No authentication token received from OIDC provider";
-              console.error(errorMsg);
-              setError(errorMsg);
-              setTimeout(
-                () => navigate(`/auth?error=${encodeURIComponent(errorMsg)}`),
-                2000
+            if (data.user) {
+              console.log(
+                "Session cookie is valid, user authenticated:",
+                data.user.username
               );
+              setStatus("Authentication successful! Redirecting...");
+
+              // Navigate to home page
+              setTimeout(() => navigate("/"), 1000);
               return;
             }
-
-            console.log("ID token found, session should be created by server");
-            setStatus("Authentication successful! Redirecting...");
-
-            // Navigate to home page - the server should have already created the session
-            setTimeout(() => {
-              console.log("Navigating to home page");
-              navigate("/");
-            }, 1000);
           }
-        } catch (sessionError) {
-          console.error("Failed to complete authentication:", sessionError);
-          setError("Failed to complete authentication");
+
+          // If we get here, the session cookie is not working
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = errorData.error || "Session validation failed";
+          console.error("Session validation failed:", errorData);
+          setError(errorMsg);
           setTimeout(
-            () => navigate("/auth?error=Failed+to+complete+authentication"),
+            () => navigate(`/auth?error=${encodeURIComponent(errorMsg)}`),
+            2000
+          );
+        } catch (sessionError) {
+          console.error("Failed to validate session:", sessionError);
+          setError("Failed to validate authentication session");
+          setTimeout(
+            () => navigate("/auth?error=Failed+to+validate+session"),
             2000
           );
         }
