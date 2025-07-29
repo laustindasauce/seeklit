@@ -91,7 +91,17 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         <div className="p-4 space-y-3">
           <ThemeToggle />
           <div className="text-sm text-gray-500">
-            Version: {import.meta.env.VITE_SEEKLIT_VERSION}
+            Version:{" "}
+            <a
+              href={`https://github.com/laustindasauce/seeklit/releases/tag/${
+                import.meta.env.VITE_SEEKLIT_VERSION
+              }`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              {import.meta.env.VITE_SEEKLIT_VERSION}
+            </a>
           </div>
         </div>
       </div>
