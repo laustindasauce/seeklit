@@ -19,9 +19,16 @@ import { useEffect, useState } from "react";
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs) => {
-  const userToken = await getUserToken(request);
-  if (userToken) return redirect("/");
-  return Response.json({});
+  try {
+    const userToken = await getUserToken(request);
+    if (userToken) return redirect("/");
+    return Response.json({});
+  } catch (error) {
+    // If there's a server communication error, we're already on the auth page
+    // so just return the empty response and let the client handle it
+    console.error("Server communication error on auth page:", error);
+    return Response.json({});
+  }
 };
 
 export default function SignInPage() {
@@ -30,9 +37,6 @@ export default function SignInPage() {
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
   const [error, setError] = useState<string | null>(searchParams.get("error"));
   const [isAuthInfoLoading, setIsAuthInfoLoading] = useState(true);
-
-  const clientOrigin =
-    typeof window !== "undefined" ? window.location.origin : "";
 
   // Fetch auth info on client side
   useEffect(() => {
@@ -67,23 +71,25 @@ export default function SignInPage() {
     }
   }, [searchParams]);
 
-  // Auto-route to OIDC if auto-redirect is enabled
+  // Auto-route to OIDC if auto-redirect is enabled and there's no error
   useEffect(() => {
     if (
       authInfo &&
       authInfo.method === "oidc" &&
       authInfo.available_methods?.oidc &&
       authInfo.auto_redirect &&
-      !isLoading
+      !isLoading &&
+      !error
     ) {
       handleOIDCLogin();
     }
-  }, [authInfo, isLoading]);
+  }, [authInfo, isLoading, error]);
 
   const showOIDC = authInfo?.available_methods?.oidc;
 
   const handleOIDCLogin = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       // Client-side OIDC login initiation
       if (typeof window !== "undefined") {
@@ -114,6 +120,35 @@ export default function SignInPage() {
     return "Sign in with OIDC";
   };
 
+  const formatErrorMessage = (errorMsg: string) => {
+    // Decode URL encoding and replace + with spaces
+    const decoded = decodeURIComponent(errorMsg.replace(/\+/g, " "));
+
+    // Make common error messages more user-friendly
+    const friendlyMessages: { [key: string]: string } = {
+      "Invalid state parameter - please try again":
+        "Your session expired. Please try signing in again.",
+      "Missing authorization code - authentication failed":
+        "Authentication was cancelled or failed. Please try again.",
+      "OIDC not configured - contact administrator":
+        "Authentication service is not properly configured.",
+      "Failed to exchange authorization code - authentication failed":
+        "Authentication failed. Please try again or contact your administrator.",
+      "No ID token in response - check OIDC provider configuration":
+        "Authentication service configuration issue.",
+      "Failed to verify ID token - authentication failed":
+        "Authentication verification failed. Please try again.",
+      "Failed to parse user claims - check OIDC provider configuration":
+        "User information could not be retrieved.",
+      "Failed to create session - please try again":
+        "Session creation failed. Please try again.",
+      "Server communication failed - check configuration":
+        "Cannot connect to the server. Please check the SEEKLIT_SERVER_URL configuration.",
+    };
+
+    return friendlyMessages[decoded] || decoded;
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen">
       <Card className="w-[350px]">
@@ -140,14 +175,28 @@ export default function SignInPage() {
                   variant="default"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Redirecting..." : getOIDCButtonLabel()}
+                  {isLoading
+                    ? "Redirecting..."
+                    : error
+                    ? "Try Again"
+                    : getOIDCButtonLabel()}
                 </Button>
               )}
             </>
           )}
 
           {/* Display client-side errors */}
-          {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-700">
+                <strong>Authentication Error:</strong>{" "}
+                {formatErrorMessage(error)}
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                If the problem persists, contact your administrator.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

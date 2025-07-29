@@ -19,9 +19,18 @@ async function getSession(request: Request) {
 export async function getUserToken(
   request: Request
 ): Promise<User["accessToken"] | undefined> {
-  // Get user from server session and return their token for compatibility
-  const user = await getUser(request);
-  return user?.accessToken;
+  try {
+    // Get user from server session and return their token for compatibility
+    const user = await getUser(request);
+    return user?.accessToken;
+  } catch (error) {
+    // If it's a server communication error, re-throw it so route loaders can handle it
+    if (error instanceof Error && error.name === "ServerCommunicationError") {
+      throw error;
+    }
+    // For other errors, return undefined (user not authenticated)
+    return undefined;
+  }
 }
 
 export async function getUser(request: Request) {
@@ -72,6 +81,17 @@ export async function getUser(request: Request) {
     return null;
   } catch (error) {
     console.error("Failed to validate server session:", error);
+
+    // Check if this is a network/connection error (server misconfiguration)
+    if (error instanceof TypeError && error.message.includes("fetch failed")) {
+      // Throw a special error that can be caught by route loaders
+      const serverError = new Error(
+        "Server communication failed - check SEEKLIT_SERVER_URL configuration"
+      );
+      serverError.name = "ServerCommunicationError";
+      throw serverError;
+    }
+
     return null;
   }
 }

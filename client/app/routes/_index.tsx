@@ -27,7 +27,6 @@ import UniversalBookShelf, {
 
 // Define the data type for the loader
 type LoaderData = {
-  userToken: string;
   absBaseUrl: string;
 };
 
@@ -35,8 +34,21 @@ type LoaderData = {
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs) => {
-  const userToken = await getUserToken(request);
-  if (!userToken) return redirect("/auth");
+  try {
+    const userToken = await getUserToken(request);
+    if (!userToken) return redirect("/auth");
+  } catch (error) {
+    // Handle server communication errors
+    if (error instanceof Error && error.name === "ServerCommunicationError") {
+      return redirect(
+        "/auth?error=" +
+          encodeURIComponent(
+            "Server communication failed - check configuration"
+          )
+      );
+    }
+    return redirect("/auth");
+  }
 
   const clientOrigin = request.headers.get("referer") || "";
   let origin = "";
@@ -61,7 +73,6 @@ export const loader: LoaderFunction = async ({
   const absBaseUrl = getEnvVal(process.env.SEEKLIT_ABS_EXTERNAL_URL, origin);
 
   return Response.json({
-    userToken,
     absBaseUrl,
   });
 };

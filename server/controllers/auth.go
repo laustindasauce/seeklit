@@ -115,15 +115,32 @@ func (c *AuthController) AuthInfo() {
 // @Failure 500 {object} map[string]string
 // @router /callback [get]
 func (c *AuthController) Callback() {
+	// Check for OIDC provider errors first
+	if errorParam := c.GetString("error"); errorParam != "" {
+		errorDescription := c.GetString("error_description")
+		logs.Error("OIDC provider returned error: %s - %s", errorParam, errorDescription)
+		
+		var errorMsg string
+		if errorDescription != "" {
+			errorMsg = errorParam + "+-+" + errorDescription
+		} else {
+			errorMsg = errorParam
+		}
+		
+		redirectURL := "/auth?error=" + errorMsg
+		c.Redirect(redirectURL, http.StatusFound)
+		return
+	}
+
 	// Verify state parameter
 	state := c.GetString("state")
 	sessionHelper := helpers.NewSessionHelper(&c.Controller)
 
 	sessionState, exists := sessionHelper.Get("oauth_state")
 	if !exists || sessionState == nil || state != sessionState.(string) {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = map[string]string{"error": "Invalid state parameter"}
-		c.ServeJSON()
+		logs.Error("Invalid state parameter - possible CSRF attack or session expired")
+		redirectURL := "/auth?error=" + "Invalid+state+parameter+-+please+try+again"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
@@ -136,9 +153,9 @@ func (c *AuthController) Callback() {
 
 	code := c.GetString("code")
 	if code == "" {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = map[string]string{"error": "Missing authorization code"}
-		c.ServeJSON()
+		logs.Error("Missing authorization code in callback")
+		redirectURL := "/auth?error=" + "Missing+authorization+code+-+authentication+failed"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
@@ -146,9 +163,9 @@ func (c *AuthController) Callback() {
 	provider := middlewares.GetOIDCProvider()
 
 	if oauth2Config == nil || provider == nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "OIDC not configured"}
-		c.ServeJSON()
+		logs.Error("OIDC not configured properly during callback")
+		redirectURL := "/auth?error=" + "OIDC+not+configured+-+contact+administrator"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
@@ -158,18 +175,17 @@ func (c *AuthController) Callback() {
 	oauth2Token, err := oauth2Config.Exchange(ctx, code)
 	if err != nil {
 		logs.Error("Failed to exchange code for token: %v", err)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "Failed to exchange authorization code"}
-		c.ServeJSON()
+		redirectURL := "/auth?error=" + "Failed+to+exchange+authorization+code+-+authentication+failed"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
 	// Extract ID token
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "No ID token in response"}
-		c.ServeJSON()
+		logs.Error("No ID token in OAuth response")
+		redirectURL := "/auth?error=" + "No+ID+token+in+response+-+check+OIDC+provider+configuration"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
@@ -178,9 +194,8 @@ func (c *AuthController) Callback() {
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		logs.Error("Failed to verify ID token: %v", err)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "Failed to verify ID token"}
-		c.ServeJSON()
+		redirectURL := "/auth?error=" + "Failed+to+verify+ID+token+-+authentication+failed"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
@@ -197,9 +212,8 @@ func (c *AuthController) Callback() {
 
 	if err := idToken.Claims(&claims); err != nil {
 		logs.Error("Failed to parse claims: %v", err)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "Failed to parse user claims"}
-		c.ServeJSON()
+		redirectURL := "/auth?error=" + "Failed+to+parse+user+claims+-+check+OIDC+provider+configuration"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
@@ -227,9 +241,8 @@ func (c *AuthController) Callback() {
 	)
 	if err != nil {
 		logs.Error("Failed to create session: %v", err)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = map[string]string{"error": "Failed to create session"}
-		c.ServeJSON()
+		redirectURL := "/auth?error=" + "Failed+to+create+session+-+please+try+again"
+		c.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 
