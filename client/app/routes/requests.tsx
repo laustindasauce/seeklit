@@ -35,6 +35,7 @@ import {
   Info,
   Loader2Icon,
   Menu,
+  RefreshCw,
   Trash,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
@@ -115,26 +116,34 @@ const BookRequests = () => {
 
   const { toast } = useToast();
 
-  // Fetch requests on component mount
-  useEffect(() => {
+  // Function to fetch requests
+  const fetchRequests = async () => {
     if (!user) return;
 
     setIsLoadingRequests(true);
-    localApi
-      .getRequests(window.location.origin, user.accessToken)
-      .then((data) => {
-        setAllRequests(data);
-        // Set initial page of requests
-        setRequests(data.slice(0, limit));
-      })
-      .catch((err) => {
-        console.error("Error fetching requests:", err);
-        setAllRequests([]);
-        setRequests([]);
-      })
-      .finally(() => {
-        setIsLoadingRequests(false);
+    try {
+      const data = await localApi.getRequests(window.location.origin);
+      setAllRequests(data);
+      // Set initial page of requests
+      setRequests(data.slice(0, limit));
+      setCurrentPage(1); // Reset to first page on refresh
+    } catch (err) {
+      console.error("Error fetching requests:", err);
+      setAllRequests([]);
+      setRequests([]);
+      toast({
+        title: "Error",
+        description: "Failed to fetch requests. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
+
+  // Fetch requests on component mount
+  useEffect(() => {
+    fetchRequests();
   }, [user]);
 
   // Update paginated requests when allRequests changes
@@ -205,16 +214,15 @@ const BookRequests = () => {
   const handleUpdate = async () => {
     if (!user || !selectedRequest) return;
     try {
-      await localApi.updateRequest(
-        user.accessToken,
-        selectedRequest.id,
-        formVals
-      );
+      await localApi.updateRequest(selectedRequest.id, formVals);
 
       toast({
         title: "Request Updated",
         description: "The book request was updated.",
       });
+
+      // Refresh the data
+      await fetchRequests();
     } catch (error) {
       console.error(error);
       toast({
@@ -238,13 +246,15 @@ const BookRequests = () => {
     }
 
     try {
-      await localApi.deleteRequest(user.accessToken, selectedRequest.id);
+      await localApi.deleteRequest(selectedRequest.id);
 
       toast({
         title: "Request Deleted",
-        description:
-          "The book request was removed. Refresh the page to see the changes.",
+        description: "The book request was removed.",
       });
+
+      // Refresh the data
+      await fetchRequests();
     } catch (error) {
       console.error(error);
       toast({
@@ -277,6 +287,23 @@ const BookRequests = () => {
         </header>
         <main className="flex-1 overflow-x-auto overflow-y-auto p-4">
           <div className="container mx-auto py-10">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">Book Requests</h1>
+              <Button
+                onClick={fetchRequests}
+                disabled={isLoadingRequests}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${
+                    isLoadingRequests ? "animate-spin" : ""
+                  }`}
+                />
+                Refresh
+              </Button>
+            </div>
             {isLoadingRequests ? (
               <div className="flex flex-col items-center justify-center text-center py-8">
                 <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
