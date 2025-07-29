@@ -39,9 +39,22 @@ import React from "react";
 export const loader: LoaderFunction = async ({
   request,
 }: LoaderFunctionArgs) => {
-  const userToken = await getUserToken(request);
-  if (!userToken) return redirect("/auth");
-  return Response.json({ userToken });
+  try {
+    const userToken = await getUserToken(request);
+    if (!userToken) return redirect("/auth");
+    return Response.json({ userToken });
+  } catch (error) {
+    // Handle server communication errors
+    if (error instanceof Error && error.name === "ServerCommunicationError") {
+      return redirect(
+        "/auth?error=" +
+          encodeURIComponent(
+            "Server communication failed - check configuration"
+          )
+      );
+    }
+    return redirect("/auth");
+  }
 };
 
 export default function SettingsPage() {
