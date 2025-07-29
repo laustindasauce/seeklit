@@ -95,7 +95,7 @@ func (r *issueRepository) GetIssues(limit, offset int, creatorID *string) ([]Iss
 
 func (r *issueRepository) GetIssue(id string) (*Issue, error) {
 	var issue Issue
-	if err := r.db.Model(Issue{}).First(&issue, id).Error; err != nil {
+	if err := r.db.Model(Issue{}).Where("id = ?", id).First(&issue).Error; err != nil {
 		return nil, err
 	}
 	return &issue, nil

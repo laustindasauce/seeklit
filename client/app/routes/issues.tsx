@@ -27,7 +27,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Clock, Edit, Info, Loader2Icon, Menu, Trash } from "lucide-react";
+import {
+  Clock,
+  Edit,
+  Info,
+  Loader2Icon,
+  Menu,
+  RefreshCw,
+  Trash,
+} from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { isAdmin, useOptionalUser } from "@/utils";
 import { LoaderFunction, LoaderFunctionArgs, redirect } from "@remix-run/node";
@@ -102,26 +110,34 @@ const Issues = () => {
 
   const { toast } = useToast();
 
-  // Fetch issues on component mount
-  useEffect(() => {
+  // Function to fetch issues
+  const fetchIssues = async () => {
     if (!user) return;
 
     setIsLoadingIssues(true);
-    localApi
-      .getIssues(window.location.origin, user.accessToken)
-      .then((data) => {
-        setAllIssues(data);
-        // Set initial page of issues
-        setIssues(data.slice(0, limit));
-      })
-      .catch((err) => {
-        console.error("Error fetching issues:", err);
-        setAllIssues([]);
-        setIssues([]);
-      })
-      .finally(() => {
-        setIsLoadingIssues(false);
+    try {
+      const data = await localApi.getIssues(window.location.origin);
+      setAllIssues(data);
+      // Set initial page of issues
+      setIssues(data.slice(0, limit));
+      setCurrentPage(1); // Reset to first page on refresh
+    } catch (err) {
+      console.error("Error fetching issues:", err);
+      setAllIssues([]);
+      setIssues([]);
+      toast({
+        title: "Error",
+        description: "Failed to fetch issues. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoadingIssues(false);
+    }
+  };
+
+  // Fetch issues on component mount
+  useEffect(() => {
+    fetchIssues();
   }, [user]);
 
   // Update paginated issues when allIssues changes
@@ -190,12 +206,15 @@ const Issues = () => {
   const handleUpdate = async () => {
     if (!user || !selectedIssue) return;
     try {
-      await localApi.updateIssue(user.accessToken, selectedIssue.id, formVals);
+      await localApi.updateIssue(selectedIssue.id, formVals);
 
       toast({
         title: "Issue Updated",
         description: "The book issue was updated.",
       });
+
+      // Refresh the data
+      await fetchIssues();
     } catch (error) {
       console.error(error);
       toast({
@@ -219,13 +238,15 @@ const Issues = () => {
     }
 
     try {
-      await localApi.deleteIssue(user.accessToken, selectedIssue.id);
+      await localApi.deleteIssue(selectedIssue.id);
 
       toast({
         title: "Issue Deleted",
-        description:
-          "The book issue was removed. Refresh the page to see the changes.",
+        description: "The book issue was removed.",
       });
+
+      // Refresh the data
+      await fetchIssues();
     } catch (error) {
       console.error(error);
       toast({
@@ -266,6 +287,21 @@ const Issues = () => {
         </header>
         <main className="flex-1 overflow-x-auto overflow-y-auto p-4">
           <div className="container mx-auto py-10">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">Issues</h1>
+              <Button
+                onClick={fetchIssues}
+                disabled={isLoadingIssues}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isLoadingIssues ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+            </div>
             {isLoadingIssues ? (
               <div className="flex flex-col items-center justify-center text-center py-8">
                 <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
