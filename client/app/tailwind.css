@@ -84,3 +84,8 @@ body {
 .input-styled {
   @apply border-gray-600 focus:border-gray-400 hover:border-gray-500 transition-colors;
 }
+
+/* Fix cursor for native search input clear button */
+input[type="search"]::-webkit-search-cancel-button {
+  cursor: pointer;
+}
