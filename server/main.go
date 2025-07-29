@@ -5,6 +5,7 @@ import (
 	"api/helpers"
 	"api/middlewares"
 	_ "api/routers"
+	"os"
 
 	"github.com/beego/beego/v2/core/config"
 	"github.com/beego/beego/v2/core/logs"
@@ -23,6 +24,14 @@ func init() {
 	logs.SetLogger("Console")
 	logs.SetLevel(config.DefaultInt("general::level", logs.LevelInfo))
 	logs.Info("Logger initialized..")
+
+	// Validate configuration settings
+	if err := helpers.ValidateConfig(); err != nil {
+		logs.Error("Configuration validation failed: %v", err)
+		logs.Error("Please check your configuration file and fix the issues above")
+		logs.Error("Exiting due to critical configuration errors")
+		os.Exit(1)
+	}
 
 	database.Connect()
 
