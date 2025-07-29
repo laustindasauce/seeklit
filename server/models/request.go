@@ -111,7 +111,7 @@ func (r *requestRepository) GetBookRequests(limit, offset int, requestorID *stri
 
 func (r *requestRepository) GetBookRequest(id string) (*BookRequest, error) {
 	var bookRequest BookRequest
-	if err := r.db.Model(BookRequest{}).First(&bookRequest, id).Error; err != nil {
+	if err := r.db.Model(BookRequest{}).Where("id = ?", id).First(&bookRequest).Error; err != nil {
 		return nil, err
 	}
 	return &bookRequest, nil
